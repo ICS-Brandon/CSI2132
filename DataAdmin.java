@@ -1,9 +1,12 @@
 package com.test;
 
+import com.sun.jdi.ClassNotPreparedException;
 import com.sun.nio.file.ExtendedWatchEventModifier;
 
 import java.sql.*;
 import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -28,13 +31,19 @@ public class DataAdmin {
     private static final String INSERT_EMPS_SQL = "INSERT INTO public.employs" +
             "  (hotel_id,e_sin_number) VALUES " +
             " (?,?);";
+    private static final String INSERT_CUST_SQL = "INSERT INTO public.customer" +
+            "  (c_sin_number,full_name,address,registration_date) VALUES " +
+            " (?,?,?,CURRENT_TIMESTAMP);";
+    private static final String INSERT_ROOM_SQL = "INSERT INTO public.room" +
+            "  (room_id,hotel_id,room_number,price,has_tv,has_ac,has_fridge,has_snackbar,is_extendable,is_rented,room_capacity,view_type) VALUES " +
+            " (?,?);";
 
     private Connection dbConn;
 
     //Constructor for DataAdmin Actor
     public DataAdmin(){
         try {
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25", "bwils088", "Wade150318!");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25", "", "");
         } catch(Exception e){
             System.out.println(e);
         }
@@ -340,6 +349,149 @@ public class DataAdmin {
         }
     }
 
+    public void addCustomer(int cSin, String name, String address){
+
+
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(INSERT_CUST_SQL);
+            pst.setInt(1,cSin);
+            pst.setString(2,name);
+            pst.setString(3,address);
+            pst.executeUpdate();
+            pst.close();
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+    }
+
+    public void updateCustomer(int cSin, String toUpdate, String value){
+
+        String SQL = "UPDATE public.customer SET "+toUpdate+" = ? WHERE c_sin_number = ?";
+
+        try{
+
+            if(checkCustomerExists(cSin)){
+
+                PreparedStatement pst = dbConn.prepareStatement(SQL);
+                pst.setString(1,value);
+                pst.setInt(2,cSin);
+                pst.executeUpdate();
+                pst.close();
+
+            } else{
+                throw new Exception("error: customer not found");
+            }
+
+        } catch (Exception e){
+            System.out.println(e);
+        }
+
+    }
+
+    public void deleteCustomer(int cSin){
+
+        String SQL = "DELETE FROM public.customer WHERE c_sin_number = ";
+
+        try{
+
+            if(checkCustomerExists(cSin)){
+
+                PreparedStatement pst = dbConn.prepareStatement(SQL);
+                pst.setInt(1,cSin);
+                pst.executeUpdate();
+                pst.close();
+
+            } else {
+                throw new Exception("error: customer not found");
+            }
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+    }
+
+    public void addRoom(int hotelId, int roomNum, int price, boolean tv, boolean ac, boolean fridge, boolean snack, boolean extend, boolean rented, int capacity, int view_type){
+        try{
+            int id = 0;
+            PreparedStatement checkId = dbConn.prepareStatement("SELECT MAX(room_id) FROM public.room");
+            ResultSet maxId = checkId.executeQuery();
+            if(maxId.next()){
+                id = maxId.getInt(1)+1;
+            } else{
+                id = 1;
+            }
+
+            PreparedStatement pst = dbConn.prepareStatement(INSERT_ROOM_SQL);
+            pst.setInt(1,id);
+            pst.setInt(2,hotelId);
+            pst.setInt(3,roomNum);
+            pst.setInt(4,price);
+            pst.setBoolean(5,tv);
+            pst.setBoolean(6,ac);
+            pst.setBoolean(7,fridge);
+            pst.setBoolean(8,snack);
+            pst.setBoolean(9,extend);
+            pst.setBoolean(10, rented);
+            pst.setInt(11,capacity);
+            pst.setInt(12, view_type);
+            pst.executeUpdate();
+            pst.close();
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }
+
+    public void updateRoom(int roomId, int hotelId, String toUpdate, String value){
+
+        String SQL = "UPDATE public.room SET "+toUpdate+" = ? WHERE room_id = ? AND hotel_id = ?";
+
+        try{
+
+            if(checkRoomExists(roomId,hotelId)){
+
+                PreparedStatement pst = dbConn.prepareStatement(SQL);
+                pst.setString(1,value);
+                pst.setInt(2,roomId);
+                pst.setInt(3,hotelId);
+                pst.executeUpdate();
+                pst.close();
+
+            } else{
+                throw new Exception("error: room not found");
+            }
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }
+
+    public void deleteRoom(int roomId, int hotelId){
+
+        String SQL = "DELETE FROM public.room WHERE room_id = ? AND hotel_id = ?";
+
+        try{
+
+            if(checkRoomExists(roomId,hotelId)){
+
+                PreparedStatement pst = dbConn.prepareStatement(SQL);
+                pst.setInt(1,roomId);
+                pst.setInt(2,hotelId);
+                pst.executeUpdate();
+                pst.close();
+
+            } else {
+                throw new Exception("error: room not found");
+            }
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+    }
+
     //Check if a given hotel exists
     public boolean checkHotelExists(int hotelId){
 
@@ -361,6 +513,27 @@ public class DataAdmin {
             }
 
         } catch (Exception e){
+            System.out.println(e);
+        }
+        return false;
+    }
+
+    public boolean checkEmployeeExists(int eSin){
+        String SQL = "SELECT * FROM public.employee WHERE e_sin_number = ?";
+
+        try{
+
+            PreparedStatement employeeExists = dbConn.prepareStatement(SQL);
+            employeeExists.setInt(1,eSin);
+            ResultSet validEmployee = employeeExists.executeQuery();
+
+            if(validEmployee.next()){
+                return true;
+            } else{
+                return false;
+            }
+
+        } catch(Exception e){
             System.out.println(e);
         }
         return false;
@@ -389,6 +562,52 @@ public class DataAdmin {
         } catch(Exception e){
             System.out.println(e);
         }
+        return false;
+    }
+
+    public boolean checkCustomerExists(int cSin){
+        String SQL = "SELECT * FROM public.customer WHERE c_sin_number = ?";
+
+        try{
+
+            PreparedStatement customerExists = dbConn.prepareStatement(SQL);
+            customerExists.setInt(1,cSin);
+            ResultSet validCustomer = customerExists.executeQuery();
+
+            if(validCustomer.next()){
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (Exception e){
+            System.out.println(e);
+        }
+
+        return false;
+    }
+
+    public boolean checkRoomExists(int roomId, int hotelId){
+
+        String SQL = "SELECT * FROM public.room WHERE room_id = ? AND hotel_id = ?";
+
+        try{
+
+            PreparedStatement roomExists = dbConn.prepareStatement(SQL);
+            roomExists.setInt(1,roomId);
+            roomExists.setInt(2,hotelId);
+            ResultSet validRoom = roomExists.executeQuery();
+
+            if(validRoom.next()){
+                return true;
+            } else{
+                return false;
+            }
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
         return false;
     }
 
