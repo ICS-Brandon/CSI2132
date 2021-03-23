@@ -11,8 +11,8 @@ public class Customer {
 
     private static final String DATETEMPLATE = "dd/MM/yyyy";
 
-    private static final String INSERT_RENT_SQL = "INSERT INTO public.rental" +
-            "  (rental_id,room_id,occupant_total,start_date,end_date,payment_id,is_cancelled,c_sin_number) VALUES " +
+    private static final String INSERT_BOOK_SQL = "INSERT INTO public.booking" +
+            "  (booking_id,room_id,occupant_total,start_date,end_date,payment_id,is_cancelled,c_sin_number) VALUES " +
             " (?,?,?,?,?,?,?,?);";
 
     public Customer(){
@@ -32,27 +32,27 @@ public class Customer {
         LocalDate end = getDateFromString(dateTwo);
 
         if(!checkBookingExists(roomId, start, end) && !checkRentalExists(roomId,start,end)){
-            System.out.println("Room is not booked or rented for the date range you have chosen, rent it?");
-            //TODO if/else logic
+            System.out.println("Room is not booked or rented for the date range you have chosen, book it?");
+            //TODO Update Room to rented status
             try {
-                PreparedStatement rentRoom = dbConn.prepareStatement(INSERT_RENT_SQL);
-                PreparedStatement maxId = dbConn.prepareStatement("SELECT MAX(rental_id) FROM public.rental");
+                PreparedStatement bookRoom = dbConn.prepareStatement(INSERT_BOOK_SQL);
+                PreparedStatement maxId = dbConn.prepareStatement("SELECT MAX(booking_id) FROM public.booking");
                 ResultSet rs = maxId.executeQuery();
                 int id = 1;
                 if(rs.next()){
                     id = rs.getInt(1) + 1;
                 }
-                rentRoom.setInt(1,id);
-                rentRoom.setInt(2,roomId);
-                rentRoom.setInt(3,people);
-                rentRoom.setDate(4, Date.valueOf(start));
-                rentRoom.setDate(5,Date.valueOf(end));
-                rentRoom.setInt(6,payId);
-                rentRoom.setBoolean(7,cancelled);
-                rentRoom.setInt(8,cSin);
-                rentRoom.executeUpdate();
+                bookRoom.setInt(1,id);
+                bookRoom.setInt(2,roomId);
+                bookRoom.setInt(3,people);
+                bookRoom.setDate(4, Date.valueOf(start));
+                bookRoom.setDate(5,Date.valueOf(end));
+                bookRoom.setInt(6,payId);
+                bookRoom.setBoolean(7,cancelled);
+                bookRoom.setInt(8,cSin);
+                bookRoom.executeUpdate();
                 maxId.close();
-                rentRoom.close();
+                bookRoom.close();
                 rs.close();
             } catch (Exception e){
                 System.out.println(e);
