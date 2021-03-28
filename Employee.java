@@ -25,6 +25,7 @@ public class Employee {
         }
     }
 
+    //Searches for rooms available at the employee's hotel
     public void roomsAvailable(){
 
         //search rooms and select only those with is_rented false
@@ -33,6 +34,7 @@ public class Employee {
 
         try{
 
+            //Get results and display
             PreparedStatement pst = dbConn.prepareStatement(SQL);
             ResultSet rs = pst.executeQuery();
             System.out.println("Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
@@ -49,6 +51,7 @@ public class Employee {
 
     }
 
+    //Displays lists of booked/rented rooms
     public void roomsBooked(){
 
         String SQL = "SELECT * FROM public.room WHERE hotel_id = "+hotelId+" AND is_rented = true";
@@ -69,6 +72,7 @@ public class Employee {
 
     }
 
+    //Gets all bookings for a given room
     public ResultSet getBooking(int roomId){
         try {
             String booking = "SELECT * FROM public.booking WHERE room_id = " + String.valueOf(roomId);
@@ -81,6 +85,7 @@ public class Employee {
         return null;
     }
 
+    //Rent a room based on bookingId and customer's sin number (terrible practice for actual program, please don't do this)
     public void rentRoom(int bookingId, int cSin){
 
         String getRoom = "SELECT * FROM public.booking WHERE booking_id = "+String.valueOf(bookingId)+" AND c_sin_nuber = "+cSin;
@@ -111,6 +116,7 @@ public class Employee {
 
     }
 
+    //Delete a given booking
     public void deleteBooking(int bookingId, int cSin){
 
         String SQL = "DELETE FROM public.booking WHERE booking_id = "+String.valueOf(bookingId)+" AND c_sin_number = "+String.valueOf(cSin);
@@ -124,15 +130,17 @@ public class Employee {
     }
 
 
-
+    //Convert boolean to string to easily display to employee
     public String boolToString(boolean bool){
         return bool == true ? "Yes" : "No";
     }
 
+    //Convert int to string to easily display to employee
     public String intToViewType(int type){
         return type == 1 ? "Sea" : "mountain";
     }
 
+    //Get the maximum rental id from table
     public int getMaxRentId(){
         String SQL = "SELECT MAX(rental_id) FROM public.rental";
 
