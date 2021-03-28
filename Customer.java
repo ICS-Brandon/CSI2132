@@ -1,13 +1,24 @@
 package com.test;
 
+import java.awt.print.Book;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 
 public class Customer {
 
     private Connection dbConn;
+    private BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    private int cSinNum;
+    private String fullName;
+    private String address;
+    private BookingHelper bookHelper;
 
     private static final String DATETEMPLATE = "dd/MM/yyyy";
 
@@ -33,16 +44,19 @@ public class Customer {
 
     //Function used by customer to book a room, needs several inputs
     //Undecided if the inputs will come before function call or during
-    public void bookRoom(String date, String dateTwo, int roomId, int people, int price, boolean cancelled, int cSin){
+    //Fairly certain it inputs will come from within
+    public void bookRoom() throws IOException {
 
-        //Get start and end date based on a format
-        LocalDate start = getDateFromString(date);
-        LocalDate end = getDateFromString(dateTwo);
+        bookHelper = getBookHelper();
 
         //Check if a booking or rental exists for the desired rental period
-        if(!checkBookingExists(roomId, start, end) && !checkRentalExists(roomId,start,end)){
+        if(!checkBookingExists(bookHelper.getRoomId(), bookHelper.getStartDate(), bookHelper.getEndDate()) && !checkRentalExists(bookHelper.getRoomId(),bookHelper.getStartDate(),bookHelper.getEndDate())){
             System.out.println("Room is not booked or rented for the date range you have chosen, book it?");
             try {
+
+                PreparedStatement roomInfo = dbConn.prepareStatement("SELECT  * FROM public.room WHERE room_id = "+bookHelper.roomId);
+
+
                 //Get a prepared statement to insert a booking into its table
                 PreparedStatement bookRoom = dbConn.prepareStatement(INSERT_BOOK_SQL);
                 //Get a prepared statement to get max booking id from the table
@@ -55,15 +69,15 @@ public class Customer {
                 }
                 //Get payment id from customer
                 //Then insert all values into booking table and execute
-                int payId = getUserPayment(price,id);
+                int payId = getUserPayment(bookHelper.getPrice(),id);
                 bookRoom.setInt(1,id);
-                bookRoom.setInt(2,roomId);
-                bookRoom.setInt(3,people);
-                bookRoom.setDate(4, Date.valueOf(start));
-                bookRoom.setDate(5,Date.valueOf(end));
+                bookRoom.setInt(2,bookHelper.getRoomId());
+                bookRoom.setInt(3,bookHelper.getOccupancy());
+                bookRoom.setDate(4, Date.valueOf(bookHelper.getStartDate()));
+                bookRoom.setDate(5,Date.valueOf(bookHelper.getEndDate()));
                 bookRoom.setInt(6,payId);
-                bookRoom.setBoolean(7,cancelled);
-                bookRoom.setInt(8,cSin);
+                bookRoom.setBoolean(7,false);
+                bookRoom.setInt(8,cSinNum);
                 bookRoom.executeUpdate();
                 maxId.close();
                 bookRoom.close();
@@ -80,7 +94,7 @@ public class Customer {
 
         try {
             //Prepare statement to get all hotel ids for hotels with the name given by the user
-            PreparedStatement checkHotel = dbConn.prepareStatement("SELECT hotel_id FROM public.hotel WHERE hotel_name = " + hName);
+            PreparedStatement checkHotel = dbConn.prepareStatement("SELECT hotel_id FROM public.hotel WHERE LOWER(hotel_name) = " + hName.toLowerCase());
             ResultSet validHotel = checkHotel.executeQuery();
             //If query does not return null get all rooms for all hotel ids
             if(validHotel.next()){
@@ -183,6 +197,51 @@ public class Customer {
         return false;
     }
 
+    //Checks if a room with the given room id exists
+    public BookingRoomInfo checkRoomExists(int rId){
+
+        String SQL = "SELECT price,room_capacity,room_id FROM public.room WHERE room_id = "+String.valueOf(rId);
+
+        try {
+            BookingRoomInfo bInfo;
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+
+            if(rs.next()) {
+                bInfo = new BookingRoomInfo(rs.getInt(1), rs.getInt(2), rs.getInt(3));
+                return bInfo;
+            } else{
+                return null;
+            }
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+        return null;
+    }
+
+    //Checks if a hotel with the given hotel name exists (currently obsolete)
+    public boolean checkHotelExists(String hName){
+
+        String SQL = "SELECT hotel_id FROM public.hotel WHERE LOWER(hotel_name) = "+hName.toLowerCase();
+
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                return true;
+            } else{
+                return false;
+            }
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+
+
+        return false;
+    }
+
     //Converts boolean value to string value to easily display to customer
     public String boolToString(boolean bool){
         return bool == true ? "Yes" : "No";
@@ -239,6 +298,217 @@ public class Customer {
         CharSequence text;
         LocalDate now = LocalDate.now();
         return now;
+    }
+
+    //Checks if the customer is valid
+    //If customer is in DB load relavent information into class
+    public boolean validCustomer(int cSin){
+
+        String SQL = "SELECT * FROM public.customer WHERE c_sin_number = "+String.valueOf(cSin);
+
+        try{
+
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+
+            if(rs.next()){
+                cSinNum = rs.getInt(1);
+                fullName = rs.getString(2);
+                address = rs.getString(3);
+                return true;
+            }else {
+
+                return false;
+            }
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+        return false;
+    }
+
+    //Displays the options for the user
+    public int displayOptions() throws IOException {
+        System.out.println("What would you like to do? (Input number of desired option)");
+        System.out.println("Option 1 : Search for rooms\nOption 2: Book a room");
+
+        String input = reader.readLine().trim();
+
+        if(!input.equals("1") || !input.equals("2")){
+            System.out.println("Sorry, that is an invalid input. Please type '1' or '2'");
+            displayOptions();
+        } else{
+            return Integer.parseInt(input);
+        }
+
+        return 0;
+    }
+
+    //Checks if the user wants to continue the decision loop
+    public boolean contLoop() throws IOException {
+        System.out.println("Would you like to choose an option or exit? (C/E)");
+        boolean validInput = false;
+        while(!validInput){
+            String option = reader.readLine().toLowerCase();
+            if(option.equals("c")){
+                validInput = true;
+                return false;
+            } else if(option.equals("e")){
+                validInput = true;
+                return true;
+            } else{
+                System.out.println("Sorry, that is an invalid input. Please type 'C' or 'E'");
+            }
+        }
+
+        return false;
+    }
+
+    //Main decision loop for the customer
+    public void mainCustomerLoop() throws IOException {
+        boolean validCSin = false;
+        while(!validCSin){
+            System.out.println("Welcome! Please login using your Sin Number: ");
+            int cSin = Integer.parseInt(reader.readLine());
+            if(validCustomer(cSin)){
+                System.out.println("Welcome, "+ fullName);
+                validCSin = true;
+                break;
+            }
+            else{
+                System.out.println("Sorry, that is not a valid Sin Number.");
+            }
+        }
+
+        boolean noExit = false;
+
+        while(!noExit){
+            int optionChose = displayOptions();
+
+            switch (optionChose){
+                case 1: searchRooms();
+                        break;
+                case 2: //bookRoom();
+                        break;
+                default: System.out.println("Error, invalid option");
+                        break;
+            }
+
+            noExit = !contLoop();
+        }
+    }
+
+    //Method to search rooms based on the option that the user selects
+    public void searchRooms() throws IOException {
+        System.out.println("Would you like to search for rooms by any value? (Y/N)");
+        String byValue = reader.readLine().trim().toLowerCase();
+
+        if(!byValue.equals("y") || !byValue.equals("n")){
+            System.out.println("Sorry, that is not a valid input.");
+            searchRooms();
+        } else if(byValue.equals("y")){
+            boolean validInput = false;
+            while(!validInput){
+                System.out.println("Which value do you want to search by? (Input number of desired option)");
+                System.out.println("Option 1: Search By Hotel Name\nOption 2: Search By Capacity");
+                String option = reader.readLine().trim();
+                if(!option.equals("1") || !option.equals("2")){
+                    System.out.println("Sorry, that is not a valid input. Please input the number of the desired option.");
+                } else if(option.equals("1")){
+                    boolean validHotel = false;
+                    while(!validHotel){
+                        System.out.println("Input the name of the hotel you wish to search by");
+                        String hotelName = reader.readLine().toLowerCase().trim();
+                        validHotel = checkHotelExists(hotelName);
+                        if(validHotel){
+                            searchByHotelName(hotelName);
+                            break;
+                        } else{
+                            System.out.println("Sorry, that's not a valid hotel name. No hotels exist with the name: "+hotelName);
+                        }
+                    }
+                    break;
+                } else if(option.equals("2")){
+                    boolean validNumber = false;
+                    while(!validNumber){
+                        System.out.println("Input the capacity you wish to search for");
+                        int capacity = Integer.parseInt(reader.readLine().trim());
+                        if(capacity > 0){
+                            validNumber = true;
+                            searchByCapacity(capacity);
+                            break;
+                        } else{
+                            System.out.println("Sorry, that's not a valid capacity. The minimum occupancy of a room is 1.");
+                        }
+                    }
+                }
+            }
+        } else if(byValue.equals("n")){
+            searchAllRooms();
+        }
+    }
+
+    //Gets all needed information for a specific booking and stores it in a helper class
+    public BookingHelper getBookHelper() throws IOException {
+        System.out.println("Input the room ID for the room you wish to book");
+        int rId = Integer.parseInt(reader.readLine().trim());
+        BookingRoomInfo bInfo = checkRoomExists(rId);
+        if(bInfo != null){
+            boolean dateLoop = false;
+            while(!dateLoop){
+                System.out.println("Input the desired start date and end date for the booking. Please separate the start date and end date by a space Format is 'dd/mm/yyyy'");
+                String[] input = reader.readLine().trim().split(" ");
+                LocalDate start = getDateFromString(input[0]);
+                LocalDate end = getDateFromString(input[1]);
+                if(end.compareTo(start) >0){
+                    dateLoop = true;
+                    boolean occLoop = false;
+                    while(!occLoop){
+                        System.out.println("Input the number of occupants for this room. The maxmium is "+bInfo.getMaxSize());
+                        int occTotal = Integer.parseInt(reader.readLine().trim());
+                        if(occTotal > 0 && occTotal < bInfo.getMaxSize()){
+                            occLoop = true;
+                            return new BookingHelper(start,end,rId,occTotal,bInfo.getPrice());
+                        } else{
+                            System.out.println("Sorry, that occupancy total is invalid. The minimum number of occupants is 0, and the max is "+bInfo.getMaxSize());
+                        }
+                    }
+                } else{
+                    System.out.println("Sorry that date range is not valid. Make sure that the end date is larger than the start date.");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public void searchAllRooms(){
+
+    }
+
+    //Gets a list of all hotel_ids with a given hotel name (currently obsolete)
+    public ArrayList<Integer> getHotelIds(String hotelName){
+
+        String SQL = "SELECT hotel_id FROM public.hotel WHERE hotel_name = " + hotelName.toLowerCase();
+
+        ArrayList<Integer> returnList = new ArrayList<>();
+
+        try{
+
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+
+            while(rs.next()){
+                returnList.add(rs.getInt(1));
+            }
+            return returnList;
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+
+        return null;
     }
 
 }
