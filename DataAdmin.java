@@ -1,14 +1,8 @@
 package com.test;
 
-import com.sun.jdi.ClassNotPreparedException;
-import com.sun.nio.file.ExtendedWatchEventModifier;
-
 import java.sql.*;
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /*
     TODO Add Logic Loops for input as well as checks to ensure valid input values
@@ -37,6 +31,12 @@ public class DataAdmin {
     private static final String INSERT_ROOM_SQL = "INSERT INTO public.room" +
             "  (room_id,hotel_id,room_number,price,has_tv,has_ac,has_fridge,has_snackbar,is_extendable,is_rented,room_capacity,view_type) VALUES " +
             " (?,?);";
+
+    private static final String INSERT_RENT_HIS_SQL = "INSERT INTO public.rental" +
+            "  (rental_id,room_id,occupant_total,start_date,end_date,payment_id,is_cancelled,c_sin_number) VALUES " +
+            " (?,?,?,?,?,?,?,?);";
+
+    private static final String DATETEMPLATE = "dd/MM/yyyy";
 
     private Connection dbConn;
 
@@ -610,5 +610,68 @@ public class DataAdmin {
 
         return false;
     }
+
+    public LocalDate getCurrentDate(){
+        DateTimeFormatter dTFormat = DateTimeFormatter.ofPattern(DATETEMPLATE);
+        CharSequence text;
+        LocalDate now = LocalDate.now();
+        return now;
+    }
+
+    public void removeOldRentals(){
+        LocalDate currDate = getCurrentDate();
+        String SQL = "SELECT * FROM public.rental WHERE end_date = " + Date.valueOf(currDate);
+
+        try{
+            PreparedStatement getExpiredRentals = dbConn.prepareStatement(SQL);
+            ResultSet expiredResults = getExpiredRentals.executeQuery();
+            while(expiredResults.next()){
+                PreparedStatement insertRental = dbConn.prepareStatement(INSERT_RENT_HIS_SQL);
+                insertRental.setInt(1,expiredResults.getInt(1));
+                insertRental.setInt(2,expiredResults.getInt(2));
+                insertRental.setInt(3,expiredResults.getInt(3));
+                insertRental.setDate(4,expiredResults.getDate(4));
+                insertRental.setDate(5,expiredResults.getDate(5));
+                insertRental.setInt(6,expiredResults.getInt(6));
+                insertRental.setBoolean(7,expiredResults.getBoolean(7));
+                insertRental.setInt(8,expiredResults.getInt(8));
+                insertRental.executeUpdate();
+            }
+            String DEL = "DELETE FROM public.rental WHERE end_date = " + Date.valueOf(currDate);
+            PreparedStatement delOldRentals = dbConn.prepareStatement(DEL);
+            delOldRentals.executeUpdate();
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }
+
+    public void removeOldBookings(){
+        LocalDate currDate = getCurrentDate();
+        String SQL = "SELECT * FROM public.booking WHERE end_date = " + Date.valueOf(currDate);
+
+        try{
+            PreparedStatement getExpiredRentals = dbConn.prepareStatement(SQL);
+            ResultSet expiredResults = getExpiredRentals.executeQuery();
+            while(expiredResults.next()){
+                PreparedStatement insertRental = dbConn.prepareStatement(INSERT_RENT_HIS_SQL);
+                insertRental.setInt(1,expiredResults.getInt(1));
+                insertRental.setInt(2,expiredResults.getInt(2));
+                insertRental.setInt(3,expiredResults.getInt(3));
+                insertRental.setDate(4,expiredResults.getDate(4));
+                insertRental.setDate(5,expiredResults.getDate(5));
+                insertRental.setInt(6,expiredResults.getInt(6));
+                insertRental.setBoolean(7,expiredResults.getBoolean(7));
+                insertRental.setInt(8,expiredResults.getInt(8));
+                insertRental.executeUpdate();
+            }
+            String DEL = "DELETE FROM public.rental WHERE end_date = " + Date.valueOf(currDate);
+            PreparedStatement delOldRentals = dbConn.prepareStatement(DEL);
+            delOldRentals.executeUpdate();
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }
+
+
 
 }

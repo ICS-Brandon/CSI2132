@@ -244,6 +244,38 @@ public class Customer {
         return false;
     }
 
+    public void displayBookings(){
+        String SQL = "SELECT room_id,occupant_total,start_date,end_date FROM public.booking WHERE c_sin_number = "+cSinNum+" AND is_cancelled = 0";
+
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+            System.out.println("Results: ");
+            System.out.println("Room ID | Occupant Total | Start Date | End Date");
+            while(rs.next()){
+                System.out.println(rs.getInt(1)+"\t"+rs.getInt(2)+"\t"+rs.getDate(3)+"\t"+rs.getDate(4));
+            }
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }
+
+    public void cancelBooking() throws IOException {
+        displayBookings();
+        System.out.println("Select the booking Id that you wish to cancel:");
+
+        int bookId = Integer.parseInt(reader.readLine().trim());
+
+        String SQL = "UPDATE public.booking SET is_cancelled = 1 WHERE booking_id = "+bookId+" AND c_sin_number = "+cSinNum;
+
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            pst.executeUpdate();
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }
+
     //Converts boolean value to string value to easily display to customer
     public String boolToString(boolean bool){
         return bool == true ? "Yes" : "No";

@@ -141,10 +141,15 @@ public class Employee {
 
     public void createRental() throws IOException {
 
-        System.out.println("Input the end date of your stay in the format dd/mm/yyyy");
+        System.out.println("Input the end date of the customer's stay in the format dd/mm/yyyy");
         String date = reader.readLine().trim();
         LocalDate endDate = getDateFromString(date);
         int roomId = 0;
+
+        roomsAvailable();
+
+        System.out.println("Input the roomId of the room that the user has selected");
+        roomId = Integer.parseInt(reader.readLine().trim());
 
         try{
             if(!checkBookingExists(roomId,getCurrentDate(),endDate) && !checkRentalExists(roomId,getCurrentDate(),endDate)){
@@ -281,9 +286,10 @@ public class Employee {
         return now;
     }
 
-    public int getUserPayment(int price, int bookingId){
+    public int getUserPayment(int price, int bookingId) throws IOException {
 
-        String payType = "Debit";
+        System.out.println("User Payment type: ");
+        String payType = reader.readLine().trim();
 
         try{
             PreparedStatement insertQuery = dbConn.prepareStatement(INSERT_PAY_SQL);
@@ -341,6 +347,17 @@ public class Employee {
         }
 
         return 0;
+    }
+
+    public void cancelRental(int rentalId){
+        String SQL = "UPDATE public.rental SET is_cancelled = 1 WHERE rental_id = "+rentalId;
+
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            pst.executeUpdate();
+        } catch(Exception e){
+            System.out.println(e);
+        }
     }
 
 }
