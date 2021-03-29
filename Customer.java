@@ -34,7 +34,7 @@ public class Customer {
 
         try{
 
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","bwils088","Wade150318!");
 
         } catch (Exception e){
             System.out.println(e);
@@ -223,12 +223,14 @@ public class Customer {
     //Checks if a hotel with the given hotel name exists (currently obsolete)
     public boolean checkHotelExists(String hName){
 
-        String SQL = "SELECT hotel_id FROM public.hotel WHERE LOWER(hotel_name) = "+hName.toLowerCase();
-
+        //String SQL = "SELECT hotel_id, chain_id, hotel_name, star_category, room_count, email_address, e_sin_number, phone_number FROM public.hotel WHERE LOWER(hotel_name) LIKE 'metropolitan'";
         try{
-            PreparedStatement pst = dbConn.prepareStatement(SQL);
-            ResultSet rs = pst.executeQuery();
+            Statement pst = dbConn.createStatement();
+            ResultSet rs = pst.executeQuery("SELECT hotel_id, chain_id, hotel_name, star_category, room_count, email_address, e_sin_number, phone_number FROM public.hotel WHERE hotel_id = 1");
             if (rs.next()) {
+                System.out.println("Success Somehow");
+                rs.close();
+                pst.close();
                 return true;
             } else{
                 return false;
@@ -334,12 +336,12 @@ public class Customer {
         System.out.println("Option 1 : Search for rooms\nOption 2: Book a room");
 
         String input = reader.readLine().trim();
-
-        if(!input.equals("1") || !input.equals("2")){
+        int num = Integer.parseInt(input);
+        if(num == 1 || num == 2){
+            return Integer.parseInt(input);
+        } else{
             System.out.println("Sorry, that is an invalid input. Please type '1' or '2'");
             displayOptions();
-        } else{
-            return Integer.parseInt(input);
         }
 
         return 0;
@@ -389,13 +391,13 @@ public class Customer {
             switch (optionChose){
                 case 1: searchRooms();
                         break;
-                case 2: //bookRoom();
+                case 2: bookRoom();
                         break;
                 default: System.out.println("Error, invalid option");
                         break;
             }
 
-            noExit = !contLoop();
+            noExit = contLoop();
         }
     }
 
@@ -404,33 +406,32 @@ public class Customer {
         System.out.println("Would you like to search for rooms by any value? (Y/N)");
         String byValue = reader.readLine().trim().toLowerCase();
 
-        if(!byValue.equals("y") || !byValue.equals("n")){
-            System.out.println("Sorry, that is not a valid input.");
-            searchRooms();
-        } else if(byValue.equals("y")){
+        if(byValue.equals("y")){
             boolean validInput = false;
             while(!validInput){
                 System.out.println("Which value do you want to search by? (Input number of desired option)");
                 System.out.println("Option 1: Search By Hotel Name\nOption 2: Search By Capacity");
                 String option = reader.readLine().trim();
-                if(!option.equals("1") || !option.equals("2")){
-                    System.out.println("Sorry, that is not a valid input. Please input the number of the desired option.");
-                } else if(option.equals("1")){
+                int num = Integer.parseInt(option);
+                if(num == 1){
                     boolean validHotel = false;
+                    validInput = true;
                     while(!validHotel){
                         System.out.println("Input the name of the hotel you wish to search by");
-                        String hotelName = reader.readLine().toLowerCase().trim();
-                        validHotel = checkHotelExists(hotelName);
+                        String hName = reader.readLine();
+                        //TODO find out why this doesn't work when called from within the customer
+                        validHotel = this.checkHotelExists(hName);
                         if(validHotel){
-                            searchByHotelName(hotelName);
+                            searchByHotelName(hName);
                             break;
                         } else{
-                            System.out.println("Sorry, that's not a valid hotel name. No hotels exist with the name: "+hotelName);
+                            System.out.println("Sorry, that's not a valid hotel name. No hotels exist with the name: "+hName);
                         }
                     }
                     break;
-                } else if(option.equals("2")){
+                } else if(num == 2){
                     boolean validNumber = false;
+                    validInput = true;
                     while(!validNumber){
                         System.out.println("Input the capacity you wish to search for");
                         int capacity = Integer.parseInt(reader.readLine().trim());
@@ -442,10 +443,15 @@ public class Customer {
                             System.out.println("Sorry, that's not a valid capacity. The minimum occupancy of a room is 1.");
                         }
                     }
+                } else if(num != 1|| num != 2){
+                    System.out.println("Sorry, that is not a valid input. Please input the number of the desired option.");
                 }
             }
         } else if(byValue.equals("n")){
             searchAllRooms();
+        } else{
+            System.out.println("Sorry, that is not a valid input.");
+            searchRooms();
         }
     }
 
@@ -484,6 +490,26 @@ public class Customer {
     }
 
     public void searchAllRooms(){
+
+        String SQL = "SELECT * FROM public.room";
+
+        try{
+
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+
+            while(rs.next()){
+                if(rs.getBoolean(10) == false) {
+                    System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" +
+                            boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
+                            boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
+                            boolToString(rs.getBoolean(9)) + "\t" + intToViewType(rs.getInt(12)));
+                }
+            }
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
 
     }
 
