@@ -34,7 +34,7 @@ public class Customer {
 
         try{
 
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","username","password");
 
         } catch (Exception e){
             System.out.println(e);
