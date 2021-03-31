@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutionException;
@@ -47,9 +48,10 @@ public class Employee {
             //Get results and display
             PreparedStatement pst = dbConn.prepareStatement(SQL);
             ResultSet rs = pst.executeQuery();
-            System.out.println("Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
+            System.out.println("Room Number | Price | End Date | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
             while(rs.next()){
-                System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" +
+                String endDate = getEndBookingDate(rs.getInt(1));
+                System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
                         boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
                         boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
                         boolToString(rs.getBoolean(9)) + "\t" + rs.getInt(11) + "\t" + intToViewType(rs.getInt(12)));
@@ -253,24 +255,6 @@ public class Employee {
         return false;
     }
 
-    public int getMaxRentalId(){
-        String SQL = "SELECT MAX(rental_id) FROM public.rental";
-
-        try{
-            PreparedStatement pst = dbConn.prepareStatement(SQL);
-            ResultSet rs = pst.executeQuery();
-            if(rs.next()){
-                return rs.getInt(1);
-            } else{
-                return 1;
-            }
-        } catch(Exception e){
-            System.out.println(e);
-        }
-
-        return 0;
-    }
-
     public LocalDate getDateFromString(String input){
         DateTimeFormatter dTFormat = DateTimeFormatter.ofPattern(DATETEMPLATE);
         CharSequence text;
@@ -357,6 +341,95 @@ public class Employee {
             pst.executeUpdate();
         } catch(Exception e){
             System.out.println(e);
+        }
+    }
+
+    public String getEndBookingDate(int roomId){
+
+        String SQL = "SELECT end_date FROM public.bookings WHERE room_id = " + roomId;
+
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+            if(rs.next()){
+                return rs.getDate(1).toString();
+            }
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+        return null;
+    }
+
+    public void employeeMainLoop() throws IOException {
+
+        boolean validCredentials = false;
+        boolean breakDecisions = false;
+
+        while(!validCredentials){
+            System.out.println("Welcome! Please input your sin number to login.");
+            int input = Integer.parseInt(reader.readLine().trim());
+            validCredentials = validEmpCredentials(input);
+        }
+
+        while(!breakDecisions){
+            int choice = displayChoices();
+            switch (choice){
+                case -1: System.out.println("error: invalid selection.");
+                        break;
+                case 1: roomsAvailable();
+                        break;
+                case 2: //todo
+                        break;
+                case 3: rentRoom(7,3); //Placeholders to figure out what to do, probably move code that gets the info to the function itself rather than pass it
+                        break;
+                case 4: createRental();
+                        break;
+            }
+        }
+    }
+
+    public boolean validEmpCredentials(int eSin){
+
+        String SQL = "SELECT * FROM pubilc.employee WHERE e_sin_number = "+eSin;
+
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+            if(rs.next()){
+                PreparedStatement pst2 = dbConn.prepareStatement("SELECT hotel_id FROM public.employs WHERE e_sin_number = "+rs.getInt(1));
+                ResultSet rs2 = pst2.executeQuery();
+                if(rs2.next()){
+                    e_Sin_Number = rs.getInt(1);
+                    hotelId = rs2.getInt(1);
+                    System.out.println("Valid credentials... now logging in");
+                    return true;
+                } else{
+                    System.out.println("error:employee is not currently employed");
+                }
+            } else{
+                System.out.println("error: employee sin number not found");
+                return false;
+            }
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+
+        return false;
+    }
+
+    public int displayChoices() throws IOException {
+
+        System.out.println("To select an option please input the number associated with it\nWould you like to");
+        System.out.println("1. Search for available rooms\n2.Search for rooms that are not available\n3. Transform a customer booking to rental\n4. Create a rental for a customer");
+
+        int input = Integer.parseInt(reader.readLine().trim());
+
+        if(input >=1 && input <= 4){
+            return input;
+        } else{
+            return -1;
         }
     }
 
