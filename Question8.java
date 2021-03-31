@@ -62,11 +62,22 @@ public class Question8 {
 			    	}
 		    		
 		    	}else if(num==2){
-		    		
+		    		Statement st=dbConn.createStatement();
+					ResultSet rs=st.executeQuery("create view CustomerListView as select c.*, hc.chain_name from customer c, rental rl, room r, hotel h, hotelchain hc where rl.c_sin_number=c.c_sin_number and rl.room_id=r.room_id and r.hotel_id=h.hotel_id and h.chain_id=hc.chain_id order by hc.chain_id");
+					System.out.println("success");
+					while (rs.next()) { 
+						for (int i=1; i<=12;++i) {
+							System.out.print(rs.getString(i)+"\t\t");
+						}
+						 
+						System.out.println(); 
+					} 
+					rs.close(); 
+					st.close();
 		    	}else if(num==3){
 		    		
 		    		Statement st=dbConn.createStatement();
-					ResultSet rs=st.executeQuery("select r.*, min(r.price) as cheapestprice from room r group by r.room_id");
+					ResultSet rs=st.executeQuery("select * from room where price=(select min(r.price) as cheapestprice from room r)");
 					System.out.println("success");
 					while (rs.next()) { 
 						for (int i=1; i<=12;++i) {
