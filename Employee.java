@@ -1,4 +1,4 @@
-package lab5;
+package com.test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 public class Employee {
@@ -37,9 +39,15 @@ public class Employee {
     }
 
     //Searches for rooms available at the employee's hotel
-    public void roomsAvailable(){
+    public void roomsAvailable() throws IOException {
 
         //search rooms and select only those with is_rented false
+
+        System.out.println("Input the start date and end date in the format of 'dd/MM/yyyy', the start and end dates being separated by a space.");
+        ArrayList<String> dates = new ArrayList<String>(Arrays.asList(reader.readLine().trim().split(" ")));
+
+        LocalDate start = getDateFromString(dates.get(0));
+        LocalDate end = getDateFromString(dates.get(1));
 
         String SQL = "SELECT * FROM public.room WHERE hotel_id = " + hotelId + " AND is_rented = false";
 
@@ -50,12 +58,13 @@ public class Employee {
             ResultSet rs = pst.executeQuery();
             
             while(rs.next()){
-            	System.out.println("hi");
-                String endDate = getEndBookingDate(rs.getInt(1));
-                System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
-                        boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
-                        boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
-                        boolToString(rs.getBoolean(9)) + "\t" + rs.getInt(11) + "\t" + intToViewType(rs.getInt(12)));
+            	if(!checkBookingExists(rs.getInt(1),start,end) && !checkRentalExists(rs.getInt(1),start,end)){
+                    String endDate = getEndBookingDate(rs.getInt(1));
+                    System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
+                            boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
+                            boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
+                            boolToString(rs.getBoolean(9)) + "\t" + rs.getInt(11) + "\t" + intToViewType(rs.getInt(12)));
+                }
             }
 
         } catch (Exception e){
@@ -65,9 +74,15 @@ public class Employee {
     }
 
     //Displays lists of booked/rented rooms
-    public void roomsBooked(){
+    public void roomsBooked() throws IOException {
 
-        String SQL = "SELECT * FROM public.room WHERE hotel_id = "+hotelId+" AND is_rented = true";
+        System.out.println("Input the start date and end date in the format of 'dd/MM/yyyy', the start and end dates being separated by a space.");
+        ArrayList<String> dates = new ArrayList<String>(Arrays.asList(reader.readLine().trim().split(" ")));
+
+        LocalDate start = getDateFromString(dates.get(0));
+        LocalDate end = getDateFromString(dates.get(1));
+
+        String SQL = "SELECT * FROM public.room WHERE hotel_id = "+hotelId;
 
         try {
 
@@ -75,11 +90,13 @@ public class Employee {
             ResultSet rs = pst.executeQuery();
 
             while(rs.next()){
-                //ResultSet booking = getBooking(rs.getInt(1));
-                //TODO print out relavent info
-            	for (int i=1; i<=13;++i) {
-					System.out.print(rs.getString(i)+"\t\t");
-				}
+                if(checkBookingExists(rs.getInt(1),start,end) || checkRentalExists(rs.getInt(1),start,end)){
+                    String endDate = getEndBookingDate(rs.getInt(1));
+                    System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
+                            boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
+                            boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
+                            boolToString(rs.getBoolean(9)) + "\t" + rs.getInt(11) + "\t" + intToViewType(rs.getInt(12)));
+                }
             }
 
         } catch(Exception e){
@@ -243,12 +260,10 @@ public class Employee {
     }
 
     public boolean checkBookingExists(int roomId, LocalDate date1, LocalDate date2){
-    	Date date11=Date.valueOf(date1);
-    	Date date22=Date.valueOf(date2);
-    	java.sql.Date sqldate1=new java.sql.Date(date11.getYear(), date11.getMonth(), date11.getDate());
-    	java.sql.Date sqldate2=new java.sql.Date(date22.getYear(), date22.getMonth(), date22.getDate());
-    	
-        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND (start_date >= "+sqldate1+" AND start_date <="+sqldate2+" AND end_date <="+sqldate2+" AND end_date >="+sqldate1+")";
+        String d1 = date1.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String d2 = date2.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND ((start_date >= '"+ d1 +"' AND start_date <= '"+d2+"') OR (end_date <= '"+d2+"' AND end_date >= '"+d1+"'))";
+
 
         try{
             //Prepared statement to see if any bookings exists
@@ -269,12 +284,10 @@ public class Employee {
     }
 
     public boolean checkRentalExists(int roomId,LocalDate date1, LocalDate date2){
-    	Date date11=Date.valueOf(date1);
-    	Date date22=Date.valueOf(date2);
-    	java.sql.Date sqldate1=new java.sql.Date(date11.getYear(), date11.getMonth(), date11.getDate());
-    	java.sql.Date sqldate2=new java.sql.Date(date22.getYear(), date22.getMonth(), date22.getDate());
-    	
-        String SQL = "SELECT * FROM public.rental WHERE room_id = "+roomId+" AND (start_date >= "+sqldate1+" AND start_date <="+sqldate2+" AND end_date <="+sqldate2+" AND end_date >="+sqldate1+")";
+        String d1 = date1.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String d2 = date2.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND ((start_date >= '"+ d1 +"' AND start_date <= '"+d2+"') OR (end_date <= '"+d2+"' AND end_date >= '"+d1+"'))";
+
 
         try{
             //Prepared statement to see if any booking exists
@@ -555,6 +568,24 @@ public class Employee {
             return input;
         } else{
             return -1;
+        }
+    }
+
+    public void displayRooms(ResultSet roomList) throws SQLException {
+        System.out.println("Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
+        while(roomList.next()){
+            if(roomList.getBoolean(10) == false) {
+                String roomNumber = String.format("%-14d",roomList.getInt(3));
+                String roomPrice = String.format("%-8d",roomList.getInt(4));
+                String roomTv = String.format("%-5s", boolToString(roomList.getBoolean(5)));
+                String roomAc = String.format("%-5s",boolToString(roomList.getBoolean(6)));
+                String roomFridge = String.format("%-9s",boolToString(roomList.getBoolean(7)));
+                String roomSnack = String.format("%-11s",boolToString(roomList.getBoolean(8)));
+                String roomExtend = String.format("%-13s",boolToString(roomList.getBoolean(9)));
+                String roomCap = String.format("%-11d",roomList.getInt(11));
+                String roomView = intToViewType(roomList.getInt(12));
+                System.out.println(roomNumber  + roomPrice + roomTv + roomAc + roomFridge + roomSnack + roomExtend + roomCap + roomView);
+            }
         }
     }
 
