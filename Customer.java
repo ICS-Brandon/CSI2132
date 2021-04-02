@@ -1,4 +1,7 @@
-package lab5;
+package com.test;
+
+import com.sun.jdi.IntegerType;
+import com.test.BookingHelper;
 
 import java.awt.print.Book;
 import java.io.BufferedReader;
@@ -10,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Customer {
 
@@ -34,7 +38,7 @@ public class Customer {
 
         try{
 
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","username","password");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","bwils088","Wade150318!");
 
         } catch (Exception e){
             System.out.println(e);
@@ -52,39 +56,59 @@ public class Customer {
         //Check if a booking or rental exists for the desired rental period
         if(!checkBookingExists(bookHelper.getRoomId(), bookHelper.getStartDate(), bookHelper.getEndDate()) && !checkRentalExists(bookHelper.getRoomId(),bookHelper.getStartDate(),bookHelper.getEndDate())){
             System.out.println("Room is not booked or rented for the date range you have chosen, book it?");
-            try {
+            boolean validInput = false;
+            while(!validInput){
+                String input = reader.readLine().trim().toLowerCase();
+                if(input.equals("y")) {
+                    try {
 
-                PreparedStatement roomInfo = dbConn.prepareStatement("SELECT  * FROM public.room WHERE room_id = "+bookHelper.roomId);
+                        //PreparedStatement roomInfo = dbConn.prepareStatement("SELECT  * FROM public.room WHERE room_id = " + bookHelper.roomId);
 
 
-                //Get a prepared statement to insert a booking into its table
-                PreparedStatement bookRoom = dbConn.prepareStatement(INSERT_BOOK_SQL);
-                //Get a prepared statement to get max booking id from the table
-                PreparedStatement maxId = dbConn.prepareStatement("SELECT MAX(booking_id) FROM public.booking");
-                ResultSet rs = maxId.executeQuery();
-                //Default value of id if query returns null
-                int id = 1;
-                if(rs.next()){
-                    id = rs.getInt(1) + 1;
+                        //Get a prepared statement to insert a booking into its table
+                        PreparedStatement bookRoom = dbConn.prepareStatement(INSERT_BOOK_SQL);
+                        //Get a prepared statement to get max booking id from the table
+                        PreparedStatement maxId = dbConn.prepareStatement("SELECT MAX(booking_id) FROM public.booking");
+                        ResultSet rs = maxId.executeQuery();
+                        //Default value of id if query returns null
+                        int id = 1;
+                        if (rs.next()) {
+                            id = rs.getInt(1) + 1;
+                        }
+                        //Get payment id from customer
+                        //Then insert all values into booking table and execute
+
+                        int payId = getUserPayment(bookHelper.getPrice(), id);
+                        bookRoom.setInt(1, id);
+                        bookRoom.setInt(2, bookHelper.getRoomId());
+                        bookRoom.setInt(3, bookHelper.getOccupancy());
+                        bookRoom.setDate(4, Date.valueOf(bookHelper.getStartDate()));
+                        bookRoom.setDate(5, Date.valueOf(bookHelper.getEndDate()));
+                        if(payId > -1){
+                            bookRoom.setInt(6, payId);
+                        }
+                        bookRoom.setBoolean(7, false);
+                        bookRoom.setInt(8, cSinNum);
+                        bookRoom.executeUpdate();
+                        maxId.close();
+                        bookRoom.close();
+                        rs.close();
+                    } catch (Exception e) {
+                        System.out.println(e);
+                    }
+                    validInput = true;
+                    break;
+                } else if(input.equals("n")){
+                    validInput = true;
+                    break;
+                } else{
+                    System.out.println("error, invalid input.");
+                    System.out.println("The given room is not booked, would you like to book it? (Y/N)");
                 }
-                //Get payment id from customer
-                //Then insert all values into booking table and execute
-                int payId = getUserPayment(bookHelper.getPrice(),id);
-                bookRoom.setInt(1,id);
-                bookRoom.setInt(2,bookHelper.getRoomId());
-                bookRoom.setInt(3,bookHelper.getOccupancy());
-                bookRoom.setDate(4, Date.valueOf(bookHelper.getStartDate()));
-                bookRoom.setDate(5,Date.valueOf(bookHelper.getEndDate()));
-                bookRoom.setInt(6,payId);
-                bookRoom.setBoolean(7,false);
-                bookRoom.setInt(8,cSinNum);
-                bookRoom.executeUpdate();
-                maxId.close();
-                bookRoom.close();
-                rs.close();
-            } catch (Exception e){
-                System.out.println(e);
             }
+
+        } else{
+            System.out.println("Sorry, that room is currently either booked or rented for the time window you have specified");
         }
 
     }
@@ -106,18 +130,12 @@ public class Customer {
                 int hotelId = validHotel.getInt(1);
                 validHotel.close();
                 checkHotel.close();
-                PreparedStatement getRooms = dbConn.prepareStatement("SELECT * FROM public.room WHERE hotel_id = "+hotelId);
+                PreparedStatement getRooms = dbConn.prepareStatement("SELECT * FROM public.room WHERE hotel_id = "+hotelId+"AND is_rented = false");
                 ResultSet roomList = getRooms.executeQuery();
                 //Display room results to customer
                 System.out.println("Results for room at: "+hName);
-                System.out.println("Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
                 while(roomList.next()){
-                    if(roomList.getBoolean(10) == false) {
-                        System.out.println(roomList.getInt(3) + "\t" + roomList.getInt(4) + "\t" +
-                        boolToString(roomList.getBoolean(5)) + "\t" + boolToString(roomList.getBoolean(6)) + "\t" +
-                        boolToString(roomList.getBoolean(7)) + "\t" + boolToString(roomList.getBoolean(8)) + "\t" +
-                        boolToString(roomList.getBoolean(9)) + "\t" + roomList.getInt(11) + "\t" + intToViewType(roomList.getInt(12)));
-                    }
+                    displayRooms(roomList);
                 }
             }
         } catch(Exception e){
@@ -131,21 +149,55 @@ public class Customer {
 
         try{
             //Prepared statement to get all rooms with a given capacity
-            PreparedStatement getRooms = dbConn.prepareStatement("SELECT * FROM public.room WHERE room_capacity = "+ size);
+            PreparedStatement getRooms = dbConn.prepareStatement("SELECT * FROM public.room WHERE room_capacity = "+ size + "AND is_rented = false");
             ResultSet roomList = getRooms.executeQuery();
-            //Dispaly room results to customer
+            //Display room results to customer
             System.out.println("Results for rooms with a capacity of: "+size);
-            System.out.println("Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
-            while(roomList.next()){
-                if(roomList.getBoolean(10) == false) {
-                    System.out.println(roomList.getInt(3) + "\t" + roomList.getInt(4) + "\t" +
-                            boolToString(roomList.getBoolean(5)) + "\t" + boolToString(roomList.getBoolean(6)) + "\t" +
-                            boolToString(roomList.getBoolean(7)) + "\t" + boolToString(roomList.getBoolean(8)) + "\t" +
-                            boolToString(roomList.getBoolean(9)) + "\t" + intToViewType(roomList.getInt(12)));
-                }
-            }
+            displayRooms(roomList);
 
         } catch (Exception e){
+            System.out.println(e);
+        }
+    }
+
+    public void searchByDates() throws IOException {
+        System.out.println("Please input the id of the chain you wish to search at, and the start and end dates for your stay separated by a space.\n" +
+                "The date should be formatted as 'dd/MM/yyyy'");
+        String input = reader.readLine().trim().toLowerCase();
+        ArrayList<String> inputList = new ArrayList<>(Arrays.asList(input.split(" ")));
+        int chainId = Integer.parseInt(inputList.get(0));
+        String SQL = "SELECT hotel_id FROM public.hotel WHERE chain_id = "+chainId;
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+            LocalDate startD = getDateFromString(inputList.get(1));
+            LocalDate endD = getDateFromString(inputList.get(2));
+            boolean hasResults = false;
+            while(rs.next()){
+                PreparedStatement getRooms = dbConn.prepareStatement("SELECT * FROM public.room WHERE hotel_id = "+rs.getInt(1));
+                ResultSet rooms = getRooms.executeQuery();
+                while(rooms.next()){
+                    if(!checkBookingExists(rooms.getInt(1),startD,endD) && !checkRentalExists(rooms.getInt(1),startD,endD)){
+                        if(rooms.getBoolean(10) == false) {
+                            hasResults = true;
+                            String roomNumber = String.format("%-14d",rooms.getInt(3));
+                            String roomPrice = String.format("%-8d",rooms.getInt(4));
+                            String roomTv = String.format("%-5s", boolToString(rooms.getBoolean(5)));
+                            String roomAc = String.format("%-5s",boolToString(rooms.getBoolean(6)));
+                            String roomFridge = String.format("%-9s",boolToString(rooms.getBoolean(7)));
+                            String roomSnack = String.format("%-11s",boolToString(rooms.getBoolean(8)));
+                            String roomExtend = String.format("%-13s",boolToString(rooms.getBoolean(9)));
+                            String roomCap = String.format("%-11d",rooms.getInt(11));
+                            String roomView = intToViewType(rooms.getInt(12));
+                            System.out.println(roomNumber  + roomPrice + roomTv + roomAc + roomFridge + roomSnack + roomExtend + roomCap + roomView);
+                        }
+                    }
+                }
+            }
+            if(!hasResults){
+                System.out.println("No results were found for the date range that you specified");
+            }
+        } catch(Exception e){
             System.out.println(e);
         }
     }
@@ -160,7 +212,9 @@ public class Customer {
 
     //Check if a booking exists during a given time window
     public boolean checkBookingExists(int roomId, LocalDate date1, LocalDate date2){
-        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND (start_date >= "+date1+" AND start_date <="+date2+" AND end_date <="+date2+" AND end_date >="+date1+")";
+        String d1 = date1.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String d2 = date2.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND ((start_date >= '"+ d1 +"' AND start_date <= '"+d2+"') OR (end_date <= '"+d2+"' AND end_date >= '"+d1+"'))";
 
         try{
             //Prepared statement to see if any bookings exists
@@ -183,7 +237,12 @@ public class Customer {
     //Check if a rental exists during a given time window
     public boolean checkRentalExists(int roomId,LocalDate date1, LocalDate date2){
 
-        String SQL = "SELECT * FROM public.rental WHERE room_id = "+roomId+" AND (start_date >= "+date1+" AND start_date <="+date2+" AND end_date <="+date2+" AND end_date >="+date1+")";
+        String d1 = date1.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String d2 = date2.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        System.out.println(d1+"\n"+d2);
+
+        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND ((start_date >= '"+ d1 +"' AND start_date <= '"+d2+"') OR (end_date <= '"+d2+"' AND end_date >= '"+d1+"'))";
 
         try{
             //Prepared statement to see if any booking exists
@@ -205,21 +264,27 @@ public class Customer {
     //Checks if a room with the given room id exists
     public BookingRoomInfo checkRoomExists(int rId){
 
-        String SQL = "SELECT price,room_capacity,room_id FROM public.room WHERE room_id = "+String.valueOf(rId);
+        boolean validRoomId = false;
+        while(!validRoomId){
 
-        try {
-            BookingRoomInfo bInfo;
-            PreparedStatement pst = dbConn.prepareStatement(SQL);
-            ResultSet rs = pst.executeQuery();
+            String SQL = "SELECT price,room_capacity,room_id FROM public.room WHERE room_id = "+String.valueOf(rId);
 
-            if(rs.next()) {
-                bInfo = new BookingRoomInfo(rs.getInt(1), rs.getInt(2), rs.getInt(3));
-                return bInfo;
-            } else{
-                return null;
+            try {
+                BookingRoomInfo bInfo;
+                PreparedStatement pst = dbConn.prepareStatement(SQL);
+                ResultSet rs = pst.executeQuery();
+
+                if(rs.next()) {
+                    bInfo = new BookingRoomInfo(rs.getInt(1), rs.getInt(2), rs.getInt(3));
+                    return bInfo;
+                } else{
+                    System.out.println("error, no room found with that room id");
+                    System.out.println("Please input a valid room id");
+                    rId = Integer.parseInt(reader.readLine().trim());
+                }
+            } catch(Exception e){
+                System.out.println(e);
             }
-        } catch(Exception e){
-            System.out.println(e);
         }
 
         return null;
@@ -264,19 +329,28 @@ public class Customer {
     }
 
     //Gets the max paymentinformation id in the table and returns it
-    public int getMaxPayId(){
-        String SQL = "SELECT MAX(payment_id) FROM public.paymentinformation";
-        try{
-            PreparedStatement psql = dbConn.prepareStatement(SQL);
-            ResultSet rs = psql.executeQuery();
-            if(rs.next()){
-                return rs.getInt(1);
+    public int getMaxPayId() throws IOException {
+
+        System.out.println("Would you like to pay for your room now? (Y/N)");
+        String input = reader.readLine().trim().toLowerCase();
+        if(input.equals("y")){
+            String SQL = "SELECT MAX(payment_id) FROM public.paymentinformation";
+            try{
+                PreparedStatement psql = dbConn.prepareStatement(SQL);
+                ResultSet rs = psql.executeQuery();
+                if(rs.next()){
+                    return rs.getInt(1);
+                }
+                else{
+                    return 1;
+                }
+            } catch(Exception e){
+                System.out.println(e);
             }
-            else{
-                return 1;
-            }
-        } catch(Exception e){
-            System.out.println(e);
+        } else if(input.equals("n")){
+            return -1;
+        } else{
+            System.out.println("error");
         }
 
         return 1;
@@ -419,7 +493,7 @@ public class Customer {
             boolean validInput = false;
             while(!validInput){
                 System.out.println("Which value do you want to search by? (Input number of desired option)");
-                System.out.println("Option 1: Search By Hotel Name\nOption 2: Search By Capacity");
+                System.out.println("Option 1: Search By Hotel Name\nOption 2: Search By Capacity\nOption 3: Search By Hotel Chain Id");
                 String option = reader.readLine().trim();
                 int num = Integer.parseInt(option);
                 if(num == 1){
@@ -452,7 +526,11 @@ public class Customer {
                             System.out.println("Sorry, that's not a valid capacity. The minimum occupancy of a room is 1.");
                         }
                     }
-                } else if(num != 1|| num != 2){
+                } else if(num == 3){
+                    searchByDates();
+                    validInput = true;
+                    break;
+                } else{
                     System.out.println("Sorry, that is not a valid input. Please input the number of the desired option.");
                 }
             }
@@ -466,6 +544,21 @@ public class Customer {
 
     //Gets all needed information for a specific booking and stores it in a helper class
     public BookingHelper getBookHelper() throws IOException {
+        boolean validInput = false;
+        while(!validInput){
+            System.out.println("Do you wish to see a list of available rooms? (Y/N)");
+            String input = reader.readLine().trim().toLowerCase();
+            if(input.equals("y")){
+                searchAllRooms();
+                validInput = true;
+                break;
+            } else if(input.equals("n")){
+                validInput = true;
+                break;
+            } else{
+                System.out.println("Error");
+            }
+        }
         System.out.println("Input the room ID for the room you wish to book");
         int rId = Integer.parseInt(reader.readLine().trim());
         BookingRoomInfo bInfo = checkRoomExists(rId);
@@ -482,7 +575,7 @@ public class Customer {
                     while(!occLoop){
                         System.out.println("Input the number of occupants for this room. The maxmium is "+bInfo.getMaxSize());
                         int occTotal = Integer.parseInt(reader.readLine().trim());
-                        if(occTotal > 0 && occTotal < bInfo.getMaxSize()){
+                        if(occTotal > 0 && occTotal <= bInfo.getMaxSize()){
                             occLoop = true;
                             return new BookingHelper(start,end,rId,occTotal,bInfo.getPrice());
                         } else{
@@ -500,21 +593,13 @@ public class Customer {
 
     public void searchAllRooms(){
 
-        String SQL = "SELECT * FROM public.room";
+        String SQL = "SELECT * FROM public.room WHERE is_rented = false";
 
         try{
 
             PreparedStatement pst = dbConn.prepareStatement(SQL);
-            ResultSet rs = pst.executeQuery();
-
-            while(rs.next()){
-                if(rs.getBoolean(10) == false) {
-                    System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" +
-                            boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
-                            boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
-                            boolToString(rs.getBoolean(9)) + "\t" + intToViewType(rs.getInt(12)));
-                }
-            }
+            ResultSet roomList = pst.executeQuery();
+            displayRooms(roomList);
 
         } catch(Exception e){
             System.out.println(e);
@@ -544,6 +629,24 @@ public class Customer {
 
 
         return null;
+    }
+
+    public void displayRooms(ResultSet roomList) throws SQLException {
+        System.out.println("Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
+        while(roomList.next()){
+            if(roomList.getBoolean(10) == false) {
+                String roomNumber = String.format("%-14d",roomList.getInt(3));
+                String roomPrice = String.format("%-8d",roomList.getInt(4));
+                String roomTv = String.format("%-5s", boolToString(roomList.getBoolean(5)));
+                String roomAc = String.format("%-5s",boolToString(roomList.getBoolean(6)));
+                String roomFridge = String.format("%-9s",boolToString(roomList.getBoolean(7)));
+                String roomSnack = String.format("%-11s",boolToString(roomList.getBoolean(8)));
+                String roomExtend = String.format("%-13s",boolToString(roomList.getBoolean(9)));
+                String roomCap = String.format("%-11d",roomList.getInt(11));
+                String roomView = intToViewType(roomList.getInt(12));
+                System.out.println(roomNumber  + roomPrice + roomTv + roomAc + roomFridge + roomSnack + roomExtend + roomCap + roomView);
+            }
+        }
     }
 
 }
