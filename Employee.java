@@ -1,4 +1,4 @@
-package com.test;
+package lab5;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -81,6 +81,7 @@ public class Employee {
 
         LocalDate start = getDateFromString(dates.get(0));
         LocalDate end = getDateFromString(dates.get(1));
+    
 
         String SQL = "SELECT * FROM public.room WHERE hotel_id = "+hotelId;
 
@@ -329,7 +330,7 @@ public class Employee {
         try{
             PreparedStatement insertQuery = dbConn.prepareStatement(INSERT_PAY_SQL);
             int payId = getMaxPayId();
-            if(payId > 1){
+            if(payId >= 1){
                 payId++;
             }
             LocalDate currentDate = getCurrentDate();
@@ -348,6 +349,7 @@ public class Employee {
         return 0;
     }
     
+    //For rentRoom() 
     public int getUserPayment2(int price, int bookingId, int payID) throws IOException {
 
         System.out.println("User Payment type: ");
@@ -423,7 +425,7 @@ public class Employee {
 
     public String getEndBookingDate(int roomId){
 
-        String SQL = "SELECT end_date FROM public.bookings WHERE room_id = " + roomId;
+        String SQL = "SELECT end_date FROM public.booking WHERE room_id = " + roomId;
 
         try{
             PreparedStatement pst = dbConn.prepareStatement(SQL);
@@ -463,13 +465,24 @@ public class Employee {
 
         boolean validEmpId = false;
         boolean breakDecisions = false;
-
+        int input=0;
         while(!validEmpId){
             System.out.println("Welcome! Please input your sin number to login.");
-            int input = Integer.parseInt(reader.readLine().trim());
+            input = Integer.parseInt(reader.readLine().trim());
             validEmpId = validEmpCredentials(input);
+            
       
         }
+        try {
+        	Statement s=dbConn.createStatement();
+       		ResultSet r=s.executeQuery("SELECT hotel_id FROM public.employs where e_sin_number="+input);
+       		r.next();
+       		hotelId=r.getInt(1);
+       		
+        }catch(Exception e) {
+        	System.out.println(e);
+        }
+     
        
         while(!breakDecisions){
             int choice = displayChoices();
