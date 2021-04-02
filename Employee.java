@@ -1,10 +1,9 @@
-package com.test;
+package lab5;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.*;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutionException;
@@ -26,12 +25,13 @@ public class Employee {
 
     private static final String DATETEMPLATE = "dd/MM/yyyy";
 
-    public Employee(int eSin, int hotId){
+    public Employee(){
         try{
             dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
-            e_Sin_Number = eSin;
-            hotelId = hotId;
+            
+     
         } catch (Exception e){
+       
             System.out.println(e);
         }
     }
@@ -48,8 +48,9 @@ public class Employee {
             //Get results and display
             PreparedStatement pst = dbConn.prepareStatement(SQL);
             ResultSet rs = pst.executeQuery();
-            System.out.println("Room Number | Price | End Date | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
+            
             while(rs.next()){
+            	System.out.println("hi");
                 String endDate = getEndBookingDate(rs.getInt(1));
                 System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
                         boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
@@ -74,8 +75,11 @@ public class Employee {
             ResultSet rs = pst.executeQuery();
 
             while(rs.next()){
-                ResultSet booking = getBooking(rs.getInt(1));
+                //ResultSet booking = getBooking(rs.getInt(1));
                 //TODO print out relavent info
+            	for (int i=1; i<=13;++i) {
+					System.out.print(rs.getString(i)+"\t\t");
+				}
             }
 
         } catch(Exception e){
@@ -100,12 +104,12 @@ public class Employee {
     //Rent a room based on bookingId and customer's sin number (terrible practice for actual program, please don't do this)
     public void rentRoom(int bookingId, int cSin){
 
-        String getRoom = "SELECT * FROM public.booking WHERE booking_id = "+String.valueOf(bookingId)+" AND c_sin_nuber = "+cSin;
+        String getRoom = "SELECT * FROM public.booking WHERE booking_id = "+String.valueOf(bookingId)+" AND c_sin_number = "+cSin;
 
         try{
 
-            PreparedStatement getBooking = dbConn.prepareStatement(getRoom);
-            ResultSet validBooking = getBooking.executeQuery();
+            Statement getBooking = dbConn.createStatement();
+            ResultSet validBooking = getBooking.executeQuery(getRoom);
 
             if(validBooking.next()){
                 PreparedStatement createRental = dbConn.prepareStatement(INSERT_RENT_SQL);
@@ -117,26 +121,50 @@ public class Employee {
                 createRental.setInt(6,validBooking.getInt(6));
                 createRental.setBoolean(7,validBooking.getBoolean((7)));
                 createRental.setInt(8,cSin);
-
+                Statement st=dbConn.createStatement();
+                ResultSet rs=st.executeQuery("select r.price from room r, booking b where b.booking_id="+bookingId+" and r.room_id=b.room_id");
+                if (rs.next()) {
+                	getUserPayment2(rs.getInt(1), bookingId, validBooking.getInt(6));
+                }
+               
+                createRental.execute();
+                changeRentalStatus(bookingId);
                 deleteBooking(bookingId,cSin);
+                
+                
             }
 
 
         } catch (Exception e){
+        	System.out.println("error from rentroom method");
             System.out.println(e);
         }
 
+    }
+    
+    //changes rental status of a room
+    public void changeRentalStatus(int rentalID) {
+    	try {
+    		Statement st=dbConn.createStatement();
+    		st.executeUpdate("update room set is_rented=true where room_id=(select r.room_id from room r, rental rl where r.room_id=rl.room_id and rl.rental_id="+rentalID+")");
+    		
+    	}catch (Exception e) {
+    		System.out.println(e);
+    	}
+    	
+		 
     }
 
     //Delete a given booking
     public void deleteBooking(int bookingId, int cSin){
 
-        String SQL = "DELETE FROM public.booking WHERE booking_id = "+ bookingId +" AND c_sin_number = "+ cSin;
+         
 
         try{
-            PreparedStatement pst = dbConn.prepareStatement(SQL);
-            pst.executeQuery();
+            Statement pst = dbConn.createStatement();
+            pst.executeUpdate("DELETE FROM booking WHERE booking_id = "+ bookingId +" AND c_sin_number = "+ cSin);
         } catch(Exception e){
+        	System.out.println("error in deleting booking");
             System.out.println(e);
         }
     }
@@ -173,6 +201,7 @@ public class Employee {
                 pst.setBoolean(7,false);
                 pst.setInt(8,123456789);
                 pst.executeUpdate();
+                changeRentalStatus(rentId);
             }
 
         } catch(Exception e){
@@ -214,7 +243,12 @@ public class Employee {
     }
 
     public boolean checkBookingExists(int roomId, LocalDate date1, LocalDate date2){
-        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND (start_date >= "+date1+" AND start_date <="+date2+" AND end_date <="+date2+" AND end_date >="+date1+")";
+    	Date date11=Date.valueOf(date1);
+    	Date date22=Date.valueOf(date2);
+    	java.sql.Date sqldate1=new java.sql.Date(date11.getYear(), date11.getMonth(), date11.getDate());
+    	java.sql.Date sqldate2=new java.sql.Date(date22.getYear(), date22.getMonth(), date22.getDate());
+    	
+        String SQL = "SELECT * FROM public.booking WHERE room_id = "+roomId+" AND (start_date >= "+sqldate1+" AND start_date <="+sqldate2+" AND end_date <="+sqldate2+" AND end_date >="+sqldate1+")";
 
         try{
             //Prepared statement to see if any bookings exists
@@ -235,8 +269,12 @@ public class Employee {
     }
 
     public boolean checkRentalExists(int roomId,LocalDate date1, LocalDate date2){
-
-        String SQL = "SELECT * FROM public.rental WHERE room_id = "+roomId+" AND (start_date >= "+date1+" AND start_date <="+date2+" AND end_date <="+date2+" AND end_date >="+date1+")";
+    	Date date11=Date.valueOf(date1);
+    	Date date22=Date.valueOf(date2);
+    	java.sql.Date sqldate1=new java.sql.Date(date11.getYear(), date11.getMonth(), date11.getDate());
+    	java.sql.Date sqldate2=new java.sql.Date(date22.getYear(), date22.getMonth(), date22.getDate());
+    	
+        String SQL = "SELECT * FROM public.rental WHERE room_id = "+roomId+" AND (start_date >= "+sqldate1+" AND start_date <="+sqldate2+" AND end_date <="+sqldate2+" AND end_date >="+sqldate1+")";
 
         try{
             //Prepared statement to see if any booking exists
@@ -287,9 +325,35 @@ public class Employee {
             insertQuery.setInt(3,price);
             insertQuery.setDate(4, Date.valueOf(currentDate));
             insertQuery.setInt(5,bookingId);
+            insertQuery.execute();
+            return payId;
+        } catch(Exception e){
+        	System.out.println("error from payment method");
+            System.out.println(e);
+        }
+
+        return 0;
+    }
+    
+    public int getUserPayment2(int price, int bookingId, int payID) throws IOException {
+
+        System.out.println("User Payment type: ");
+        String payType = reader.readLine().trim();
+
+        try{
+            PreparedStatement insertQuery = dbConn.prepareStatement(INSERT_PAY_SQL);
+            int payId = payID;
+           
+            LocalDate currentDate = getCurrentDate();
+            insertQuery.setInt(1,payId);
+            insertQuery.setString(2,payType);
+            insertQuery.setInt(3,price);
+            insertQuery.setDate(4, Date.valueOf(currentDate));
+            insertQuery.setInt(5,bookingId);
             insertQuery.executeUpdate();
             return payId;
         } catch(Exception e){
+        	System.out.println("error from payment method");
             System.out.println(e);
         }
 
@@ -360,18 +424,40 @@ public class Employee {
 
         return null;
     }
+    
+    //Validates that given booking id exists in booking table
+    public boolean validateBookingId(int bookingID) {
+    	try {
+
+			Statement st=dbConn.createStatement();
+			ResultSet rs=st.executeQuery("SELECT * FROM public.booking where booking_id="+bookingID);
+			
+			if (rs.next()) { 
+				return true;
+			}else {
+				return false;
+			}
+			 
+		}catch(Exception e){
+	
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+    }
 
     public void employeeMainLoop() throws IOException {
 
-        boolean validCredentials = false;
+        boolean validEmpId = false;
         boolean breakDecisions = false;
 
-        while(!validCredentials){
+        while(!validEmpId){
             System.out.println("Welcome! Please input your sin number to login.");
             int input = Integer.parseInt(reader.readLine().trim());
-            validCredentials = validEmpCredentials(input);
+            validEmpId = validEmpCredentials(input);
+      
         }
-
+       
         while(!breakDecisions){
             int choice = displayChoices();
             switch (choice){
@@ -379,19 +465,56 @@ public class Employee {
                         break;
                 case 1: roomsAvailable();
                         break;
-                case 2: //todo
+                case 2: roomsBooked();//todo: search for rooms that are unavailable
                         break;
-                case 3: rentRoom(7,3); //Placeholders to figure out what to do, probably move code that gets the info to the function itself rather than pass it
+                case 3: //need to alter booking table to continue, also remember to fix the EmpValidation methos
+                	try {
+                		
+                		//prints out all the bookings
+                		Statement st=dbConn.createStatement();
+            			ResultSet rs=st.executeQuery("SELECT * FROM public.booking");
+            			
+            			System.out.println("Booking ID |  Room ID | Occupant Total | Start Date | End Date | Payment ID | Is Cancelled? | Customer Sin Number");
+            			while (rs.next()) { 
+            				for (int i=1; i<=8;++i) {
+            					System.out.print(rs.getString(i)+"\t\t");
+            				}
+            				 
+            				System.out.println(); 
+            			} 
+            			rs.close(); 
+            			st.close();
+            			
+                    	System.out.println("Enter the booking id to transform");
+                    	int bookingId=Integer.parseInt(reader.readLine().trim());
+                    	while(!validateBookingId(bookingId)) {
+                    		System.out.println("Please enter valid booking id");
+                        	bookingId=Integer.parseInt(reader.readLine().trim());
+                    		
+                    	}
+                    	System.out.println("Enter the customer sin number to transform");
+                    	int cSin=Integer.parseInt(reader.readLine().trim());
+                    	
+                    	rentRoom(bookingId, cSin);
+                    	deleteBooking(bookingId,cSin);
+                	}catch(Exception e) {
+                		System.out.println(e);
+                	}
+        			
                         break;
                 case 4: createRental();
                         break;
+              
+                	
             }
         }
     }
+    
+
 
     public boolean validEmpCredentials(int eSin){
 
-        String SQL = "SELECT * FROM pubilc.employee WHERE e_sin_number = "+eSin;
+        String SQL = "SELECT * FROM employee WHERE e_sin_number = "+eSin;
 
         try{
             PreparedStatement pst = dbConn.prepareStatement(SQL);
@@ -414,9 +537,11 @@ public class Employee {
         } catch(Exception e){
             System.out.println(e);
         }
+    	
 
 
         return false;
+    	
     }
 
     public int displayChoices() throws IOException {
@@ -426,7 +551,7 @@ public class Employee {
 
         int input = Integer.parseInt(reader.readLine().trim());
 
-        if(input >=1 && input <= 4){
+        if(input >=1 && input <= 5){
             return input;
         } else{
             return -1;
