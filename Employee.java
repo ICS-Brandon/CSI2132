@@ -1,4 +1,4 @@
-package lab5;
+package com.test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -53,19 +53,23 @@ public class Employee {
 
         try{
 
+
+
             //Get results and display
             PreparedStatement pst = dbConn.prepareStatement(SQL);
             ResultSet rs = pst.executeQuery();
-            
+            displayRooms(rs);
+
+            /*
             while(rs.next()){
             	if(!checkBookingExists(rs.getInt(1),start,end) && !checkRentalExists(rs.getInt(1),start,end)){
                     String endDate = getEndBookingDate(rs.getInt(1));
-                    System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
+                    System.out.println(rs.getInt(1) + "\t" + rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
                             boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
                             boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
                             boolToString(rs.getBoolean(9)) + "\t" + rs.getInt(11) + "\t" + intToViewType(rs.getInt(12)));
                 }
-            }
+            }*/
 
         } catch (Exception e){
             System.out.println(e);
@@ -203,18 +207,20 @@ public class Employee {
         try{
             if(!checkBookingExists(roomId,getCurrentDate(),endDate) && !checkRentalExists(roomId,getCurrentDate(),endDate)){
                 PreparedStatement pst = dbConn.prepareStatement(INSERT_RENT_SQL);
+                String start = getCurrentDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                String end = endDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 int rentId = getMaxRentId();
                 int price = getRoomPrice(roomId);
-                System.out.println(price);
                 int payId = getUserPayment(price,rentId);
                 pst.setInt(1,rentId);
-                pst.setInt(2,roomId);
+                pst.setInt(2,1112);
                 pst.setInt(3,4);
-                pst.setDate(4,Date.valueOf(getCurrentDate()));
-                pst.setDate(5,Date.valueOf(endDate));
+                pst.setDate(4, Date.valueOf(start));
+                pst.setDate(5,Date.valueOf(end));
                 pst.setInt(6,payId);
                 pst.setBoolean(7,false);
                 pst.setInt(8,378392056);
+                System.out.println(pst);
                 pst.executeUpdate();
                 changeRentalStatus(rentId);
             }
@@ -391,7 +397,7 @@ public class Employee {
 
     public int getRoomPrice(int roomId){
 
-        String SQL = "SELECT price from public.room WHERE room_number = "+roomId;
+        String SQL = "SELECT price from public.room WHERE room_id = "+roomId;
 
         try{
             PreparedStatement pst = dbConn.prepareStatement(SQL);
@@ -586,9 +592,10 @@ public class Employee {
     }
 
     public void displayRooms(ResultSet roomList) throws SQLException {
-        System.out.println("Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
+        System.out.println("Room Id | Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
         while(roomList.next()){
             if(roomList.getBoolean(10) == false) {
+                String roomId = String.format("%-10d",roomList.getInt(1));
                 String roomNumber = String.format("%-14d",roomList.getInt(3));
                 String roomPrice = String.format("%-8d",roomList.getInt(4));
                 String roomTv = String.format("%-5s", boolToString(roomList.getBoolean(5)));
@@ -598,7 +605,7 @@ public class Employee {
                 String roomExtend = String.format("%-13s",boolToString(roomList.getBoolean(9)));
                 String roomCap = String.format("%-11d",roomList.getInt(11));
                 String roomView = intToViewType(roomList.getInt(12));
-                System.out.println(roomNumber  + roomPrice + roomTv + roomAc + roomFridge + roomSnack + roomExtend + roomCap + roomView);
+                System.out.println(roomId + roomNumber + roomPrice + roomTv + roomAc + roomFridge + roomSnack + roomExtend + roomCap + roomView);
             }
         }
     }
