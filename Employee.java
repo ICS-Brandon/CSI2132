@@ -29,7 +29,7 @@ public class Employee {
 
     public Employee(){
         try{
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","bwils088","Wade150318!");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","user","password");
             
      
         } catch (Exception e){
@@ -49,7 +49,7 @@ public class Employee {
         LocalDate start = getDateFromString(dates.get(0));
         LocalDate end = getDateFromString(dates.get(1));
 
-        String SQL = "SELECT * FROM public.room WHERE hotel_id = " + hotelId + " AND is_rented = false";
+        String SQL = "SELECT * FROM public.room WHERE hotel_id = " + hotelId;
 
         try{
 
@@ -57,20 +57,25 @@ public class Employee {
 
             //Get results and display
             PreparedStatement pst = dbConn.prepareStatement(SQL);
-            ResultSet rs = pst.executeQuery();
-            displayRooms(rs);
-
-            /*
-            while(rs.next()){
-            	if(!checkBookingExists(rs.getInt(1),start,end) && !checkRentalExists(rs.getInt(1),start,end)){
-                    String endDate = getEndBookingDate(rs.getInt(1));
-                    System.out.println(rs.getInt(1) + "\t" + rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
-                            boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
-                            boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
-                            boolToString(rs.getBoolean(9)) + "\t" + rs.getInt(11) + "\t" + intToViewType(rs.getInt(12)));
+            ResultSet roomList = pst.executeQuery();
+            System.out.println("Room Id | Room Number | Price | TV | AC | Fridge | Snackbar | Extendable | Capacity | View Type");
+            while(roomList.next()){
+                if(!checkBookingExists(roomList.getInt(1),start,end) && !checkRentalExists(roomList.getInt(1),start,end)) {
+                    String roomId = String.format("%-10d",roomList.getInt(1));
+                    String roomNumber = String.format("%-14d",roomList.getInt(3));
+                    String roomPrice = String.format("%-8d",roomList.getInt(4));
+                    String roomTv = String.format("%-5s", boolToString(roomList.getBoolean(5)));
+                    String roomAc = String.format("%-5s",boolToString(roomList.getBoolean(6)));
+                    String roomFridge = String.format("%-9s",boolToString(roomList.getBoolean(7)));
+                    String roomSnack = String.format("%-11s",boolToString(roomList.getBoolean(8)));
+                    String roomExtend = String.format("%-13s",boolToString(roomList.getBoolean(9)));
+                    String roomCap = String.format("%-11d",roomList.getInt(11));
+                    String roomView = intToViewType(roomList.getInt(12));
+                    System.out.println(roomId + roomNumber + roomPrice + roomTv + roomAc + roomFridge + roomSnack + roomExtend + roomCap + roomView);
                 }
-            }*/
+            }
 
+            System.out.println();
         } catch (Exception e){
             System.out.println(e);
         }
@@ -94,15 +99,18 @@ public class Employee {
             PreparedStatement pst = dbConn.prepareStatement(SQL);
             ResultSet rs = pst.executeQuery();
 
+            System.out.println("\nInformation is in the order of: room ID / Room Number / End Date / Has TV / Has AC / Has Snackbar / Is Extendable / Room Capacity / View Type");
+
             while(rs.next()){
                 if(checkBookingExists(rs.getInt(1),start,end) || checkRentalExists(rs.getInt(1),start,end)){
                     String endDate = getEndBookingDate(rs.getInt(1));
-                    System.out.println(rs.getInt(3) + "\t" + rs.getInt(4) + "\t" + endDate + "\t" +
-                            boolToString(rs.getBoolean(5)) + "\t" + boolToString(rs.getBoolean(6)) + "\t" +
-                            boolToString(rs.getBoolean(7)) + "\t" + boolToString(rs.getBoolean(8)) + "\t" +
-                            boolToString(rs.getBoolean(9)) + "\t" + rs.getInt(11) + "\t" + intToViewType(rs.getInt(12)));
+                    System.out.println(rs.getInt(1) + " / " + rs.getInt(3) + " / " + rs.getInt(4) + " / " + endDate + " / " +
+                            boolToString(rs.getBoolean(5)) + " / " + boolToString(rs.getBoolean(6)) + " / " +
+                            boolToString(rs.getBoolean(7)) + " / " + boolToString(rs.getBoolean(8)) + " / " +
+                            boolToString(rs.getBoolean(9)) + " / " + rs.getInt(11) + " / " + intToViewType(rs.getInt(12)));
                 }
             }
+            System.out.println();
 
         } catch(Exception e){
             System.out.println(e);
@@ -238,7 +246,7 @@ public class Employee {
 
     //Convert int to string to easily display to employee
     public String intToViewType(int type){
-        return type == 1 ? "Sea" : "mountain";
+        return type == 1 ? "Sea" : "Mountain";
     }
 
     //Get the maximum rental id from table
