@@ -10,14 +10,12 @@ public class Main {
 
         try {
             Class.forName("org.postgresql.Driver");
-            //ConnectionDriver connDriver = new ConnectionDriver();
-            //connDriver.addHotelChain(6,"519-442-1985","test2@gmail.com","HotelsRUs","Ottawa");
-            //connDriver.updateHotelChain("phone_number",1,"Testing");
+            
            
             boolean validChoice=false;
             while (!validChoice) {
             	 System.out.println("Select an option to test.");
-                 System.out.println("1. Employee Functionality\n2. Customer Functionality\n3. Question 8 Queries\n4. Exit");
+                 System.out.println("1. Employee Functionality\n2. Customer Functionality\n3. Question 8 Queries\n4. DataAdmin \n5. Exit");
 				int choice=Integer.parseInt(reader.readLine().trim());
 				switch(choice) {
 					case 1:
@@ -37,6 +35,12 @@ public class Main {
 			        	break;
 			        case 4:
 			        	validChoice=true;
+			        	DataAdmin test4=new DataAdmin();
+			        	test4.mainAdminLoop();
+			  
+			        	break;
+			        case 5:
+			        	validChoice=true;
 			  
 			        	break;
 			        default:
@@ -46,14 +50,7 @@ public class Main {
 				}
             }
             
-            /*ResultSet test = connDriver.selectAll("hotelchain");
-            while(test.next()){
-                System.out.println(test.getString(1));
-              
-             Customer test = new Customer();
-            test.mainCustomerLoop();
-            }
-             */
+          
         } catch(Exception e){
         	e.printStackTrace();
             System.out.println(e);
