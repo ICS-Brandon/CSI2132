@@ -1,4 +1,4 @@
-package com.test;
+package DBMS;
 
 public class BookingRoomInfo {
 

@@ -1,7 +1,6 @@
-package lab5;
+package DBMS;
 
 import com.sun.jdi.IntegerType;
-import lab5.BookingHelper;
 
 import java.awt.print.Book;
 import java.io.BufferedReader;
@@ -38,7 +37,7 @@ public class Customer {
 
         try{
 
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","user","password");
 
         } catch (Exception e){
             System.out.println(e);
@@ -118,7 +117,7 @@ public class Customer {
 
         try {
             //Prepare statement to get all hotel ids for hotels with the name given by the user
-        	 
+
             //PreparedStatement checkHotel = dbConn.prepareStatement("SELECT hotel_id FROM public.hotel WHERE LOWER(hotel_name) = " + hName.toLowerCase());
             //ResultSet validHotel = checkHotel.executeQuery();
             String stm="SELECT hotel_id FROM public.hotel WHERE LOWER(hotel_name) = ?";
@@ -298,8 +297,8 @@ public class Customer {
         	  String stm="SELECT hotel_id, chain_id, hotel_name, star_category, room_count, email_address, e_sin_number, phone_number FROM public.hotel WHERE LOWER(hotel_name)=?";
               PreparedStatement pst= dbConn.prepareStatement(stm);
                pst.setString(1, hName);
-               
-       
+
+
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
                 System.out.println("Success Somehow");
@@ -369,7 +368,7 @@ public class Customer {
             insertQuery.setString(2,payType);
             insertQuery.setInt(3,price);
             insertQuery.setDate(4,Date.valueOf(currentDate));
-            
+
         } catch(Exception e){
             System.out.println(e);
         }
@@ -416,7 +415,7 @@ public class Customer {
     //Displays the options for the user
     public int displayOptions() throws IOException {
         System.out.println("What would you like to do? (Input number of desired option)");
-        System.out.println("Option 1 : Search for rooms\nOption 2: Book a room");
+        System.out.println("Option 1: Search for rooms\nOption 2: Book a room");
 
         String input = reader.readLine().trim();
         int num = Integer.parseInt(input);

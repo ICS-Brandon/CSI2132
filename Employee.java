@@ -1,4 +1,4 @@
-package lab5;
+package DBMS;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,11 +29,11 @@ public class Employee {
 
     public Employee(){
         try{
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
-            
-     
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","user","password");
+
+
         } catch (Exception e){
-       
+
             System.out.println(e);
         }
     }
@@ -90,7 +90,7 @@ public class Employee {
 
         LocalDate start = getDateFromString(dates.get(0));
         LocalDate end = getDateFromString(dates.get(1));
-    
+
 
         String SQL = "SELECT * FROM public.room WHERE hotel_id = "+hotelId;
 
@@ -160,8 +160,8 @@ public class Employee {
                 createRental.executeUpdate();
                 changeRentalStatus(bookingId);
                 deleteBooking(bookingId,cSin);
-                
-                
+
+
             }
 
 
@@ -171,24 +171,24 @@ public class Employee {
         }
 
     }
-    
+
     //changes rental status of a room
     public void changeRentalStatus(int rentalID) {
     	try {
     		Statement st=dbConn.createStatement();
     		st.executeUpdate("update room set is_rented=true where room_id=(select r.room_id from room r, rental rl where r.room_id=rl.room_id and rl.rental_id="+rentalID+")");
-    		
+
     	}catch (Exception e) {
     		System.out.println(e);
     	}
-    	
-		 
+
+
     }
 
     //Delete a given booking
     public void deleteBooking(int bookingId, int cSin){
 
-         
+
 
         try{
             Statement pst = dbConn.createStatement();
@@ -358,7 +358,7 @@ public class Employee {
             insertQuery.setString(2,payType);
             insertQuery.setInt(3,price);
             insertQuery.setDate(4, Date.valueOf(currentDate));
-          
+
             insertQuery.executeUpdate();
             return payId;
         } catch(Exception e){
@@ -367,8 +367,8 @@ public class Employee {
 
         return 0;
     }
-    
-    //For rentRoom() 
+
+    //For rentRoom()
     public int getUserPayment2(int price, int bookingId, int payID) throws IOException {
 
         System.out.println("User Payment type: ");
@@ -377,13 +377,13 @@ public class Employee {
         try{
             PreparedStatement insertQuery = dbConn.prepareStatement(INSERT_PAY_SQL);
             int payId = payID;
-           
+
             LocalDate currentDate = getCurrentDate();
             insertQuery.setInt(1,payId);
             insertQuery.setString(2,payType);
             insertQuery.setInt(3,price);
             insertQuery.setDate(4, Date.valueOf(currentDate));
-            
+
             insertQuery.executeUpdate();
             return payId;
         } catch(Exception e){
@@ -463,22 +463,22 @@ public class Employee {
 
         return new String("N/A");
     }
-    
+
     //Validates that given booking id exists in booking table
     public boolean validateBookingId(int bookingID) {
     	try {
 
 			Statement st=dbConn.createStatement();
 			ResultSet rs=st.executeQuery("SELECT * FROM public.booking where booking_id="+bookingID);
-			
-			if (rs.next()) { 
+
+			if (rs.next()) {
 				return true;
 			}else {
 				return false;
 			}
-			 
+
 		}catch(Exception e){
-	
+
 			System.out.println(e.getMessage());
 			e.printStackTrace();
 			return false;
@@ -494,20 +494,20 @@ public class Employee {
             System.out.println("Welcome! Please input your sin number to login.");
             input = Integer.parseInt(reader.readLine().trim());
             validEmpId = validEmpCredentials(input);
-            
-      
+
+
         }
         try {
         	Statement s=dbConn.createStatement();
        		ResultSet r=s.executeQuery("SELECT hotel_id FROM public.employs where e_sin_number="+input);
        		r.next();
        		hotelId=r.getInt(1);
-       		
+
         }catch(Exception e) {
         	System.out.println(e);
         }
-     
-       
+
+
         while(!breakDecisions){
             int choice = displayChoices();
             switch (choice){
@@ -515,51 +515,53 @@ public class Employee {
                         break;
                 case 1: roomsAvailable();
                         break;
-                case 2: roomsBooked();//todo: search for rooms that are unavailable
+                case 2: roomsBooked();
                         break;
                 case 3: //need to alter booking table to continue, also remember to fix the EmpValidation methos
                 	try {
-                		
+
                 		//prints out all the bookings
                 		Statement st=dbConn.createStatement();
             			ResultSet rs=st.executeQuery("SELECT * FROM public.booking");
-            			
+
             			System.out.println("Booking ID |  Room ID | Occupant Total | Start Date | End Date | Payment ID | Is Cancelled? | Customer Sin Number");
-            			while (rs.next()) { 
+            			while (rs.next()) {
             				for (int i=1; i<=8;++i) {
             					System.out.print(rs.getString(i)+"\t\t");
             				}
-            				 
-            				System.out.println(); 
-            			} 
-            			rs.close(); 
+
+            				System.out.println();
+            			}
+            			rs.close();
             			st.close();
-            			
+
                     	System.out.println("Enter the booking id to transform");
                     	int bookingId=Integer.parseInt(reader.readLine().trim());
                     	while(!validateBookingId(bookingId)) {
                     		System.out.println("Please enter valid booking id");
                         	bookingId=Integer.parseInt(reader.readLine().trim());
-                    		
+
                     	}
                     	System.out.println("Enter the customer sin number to transform");
                     	int cSin=Integer.parseInt(reader.readLine().trim());
-                    	
+
                     	rentRoom(bookingId, cSin);
                     	deleteBooking(bookingId,cSin);
                 	}catch(Exception e) {
                 		System.out.println(e);
                 	}
-        			
+
                         break;
                 case 4: createRental();
                         break;
-              
-                	
+                case 5: breakDecisions = true;
+                        break;
+
+
             }
         }
     }
-    
+
 
 
     public boolean validEmpCredentials(int eSin){
@@ -587,17 +589,17 @@ public class Employee {
         } catch(Exception e){
             System.out.println(e);
         }
-    	
+
 
 
         return false;
-    	
+
     }
 
     public int displayChoices() throws IOException {
 
         System.out.println("To select an option please input the number associated with it\nWould you like to");
-        System.out.println("1. Search for available rooms\n2.Search for rooms that are not available\n3. Transform a customer booking to rental\n4. Create a rental for a customer");
+        System.out.println("1. Search for available rooms\n2. Search for rooms that are not available\n3. Transform a customer booking to rental\n4. Create a rental for a customer\n5. Exit the application");
 
         int input = Integer.parseInt(reader.readLine().trim());
 

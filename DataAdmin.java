@@ -1,4 +1,4 @@
-package lab5;
+package DBMS;
 
 
 import com.sun.jdi.ClassNotPreparedException;
@@ -46,7 +46,7 @@ public class DataAdmin {
     //Constructor for DataAdmin Actor
     public DataAdmin(){
         try {
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25", "", "");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25", "user", "password");
         } catch(Exception e){
             System.out.println(e);
         }
@@ -561,7 +561,7 @@ public class DataAdmin {
             } else{
                 return false;
             }
-            
+
         } catch(Exception e){
             System.out.println(e);
         }
@@ -613,7 +613,7 @@ public class DataAdmin {
 
         return false;
     }
-    
+
     public void mainAdminLoop() {
     	try {
     		boolean run=true;
@@ -625,17 +625,17 @@ public class DataAdmin {
     			System.out.println("Run another query?(Y/N)");
     			String choice=reader.readLine().trim().toLowerCase();
     			if(choice.equals("y")) {
-    				
+
     			}else {
     				run=false;
     			}
     		}
-    		
+
     	}catch(Exception e) {
     		System.out.println(e);
     	}
-    	
-    	
+
+
     }
 
 }

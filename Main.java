@@ -1,4 +1,4 @@
-package lab5;
+package DBMS;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -10,8 +10,8 @@ public class Main {
 
         try {
             Class.forName("org.postgresql.Driver");
-            
-           
+
+
             boolean validChoice=false;
             while (!validChoice) {
             	 System.out.println("Select an option to test.");
@@ -37,20 +37,20 @@ public class Main {
 			        	validChoice=true;
 			        	DataAdmin test4=new DataAdmin();
 			        	test4.mainAdminLoop();
-			  
+
 			        	break;
 			        case 5:
 			        	validChoice=true;
-			  
+
 			        	break;
 			        default:
 			        	System.out.println("Select valid option.");
-			        	
-			        	
+
+
 				}
             }
-            
-          
+
+
         } catch(Exception e){
         	e.printStackTrace();
             System.out.println(e);
