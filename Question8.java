@@ -31,26 +31,26 @@ public class Question8 {
 		    	String option = reader.readLine().trim();
 		    	int num = Integer.parseInt(option);
 		    	if (num==1) {
-		    		System.out.println("Choose hotel from the following list:");
+		    		System.out.println("Choose hotel ID from the following list:");
 		    		Statement st=dbConn.createStatement();
-					ResultSet rs1=st.executeQuery("select h.hotel_name from hotel h");
+					ResultSet rs1=st.executeQuery("select h.hotel_id, h.hotel_name from hotel h");
 					while (rs1.next()) { 
-		 				for (int i=1; i<=1;++i) {
+		 				for (int i=1; i<=2;++i) {
 		 					System.out.print(rs1.getString(i)+"\t\t");
 		 				}
 		 				 
 		 				System.out.println(); 
 		 			} 
 		 			rs1.close();
-			    	String hName = reader.readLine().trim();
+			    	int hID = Integer.parseInt(reader.readLine().trim());
 			    	try {
-			    		 String stm="select * from (select full_name, view_type, price, start_date, hc.chain_name from hotelchain hc, (select * from hotel h join (select * from customer c  join (select * from room r  join rental rl on rl.room_id=r.room_id) as rrl on c.c_sin_number=rrl.c_sin_number) as crrl on crrl.hotel_id=h.hotel_id) as hcrrl where hcrrl.chain_id=hc.chain_id and hotel_name=? order by price asc) as finaltable order by start_date desc";
+			    		 String stm="select c.full_name, view_type, price, start_date, hc.chain_name from rental rl, customer c, room r, hotel h, hotelchain hc where rl.c_sin_number=c.c_sin_number and rl.room_id=r.room_id and h.chain_id=hc.chain_id and h.hotel_id=? order by r.price asc, rl.start_date desc";
 			    		 PreparedStatement pst= dbConn.prepareStatement(stm);
-			             pst.setString(1, hName);
+			             pst.setInt(1, hID);
 			             ResultSet rs = pst.executeQuery();
-			             System.out.println("Customer Name | View Type | Price | Start Date | Hotel Chain");
+			             System.out.println("Customer Name	| View Type		| Price		| Start Date 	| Hotel Chain	");
 			             while (rs.next()) { 
-			 				for (int i=1; i<=3;++i) {
+			 				for (int i=1; i<=5;++i) {
 			 					System.out.print(rs.getString(i)+"\t\t");
 			 				}
 			 				 
@@ -64,9 +64,8 @@ public class Question8 {
 		    	}else if(num==2){
 		    		Statement st=dbConn.createStatement();
 					ResultSet rs=st.executeQuery("create view CustomerListView as select c.*, hc.chain_name from customer c, rental rl, room r, hotel h, hotelchain hc where rl.c_sin_number=c.c_sin_number and rl.room_id=r.room_id and r.hotel_id=h.hotel_id and h.chain_id=hc.chain_id order by hc.chain_id");
-					System.out.println("success");
 					while (rs.next()) { 
-						for (int i=1; i<=12;++i) {
+						for (int i=1; i<=6;++i) {
 							System.out.print(rs.getString(i)+"\t\t");
 						}
 						 
@@ -78,7 +77,6 @@ public class Question8 {
 		    		
 		    		Statement st=dbConn.createStatement();
 					ResultSet rs=st.executeQuery("select * from room where price=(select min(r.price) as cheapestprice from room r)");
-					System.out.println("success");
 					while (rs.next()) { 
 						for (int i=1; i<=12;++i) {
 							System.out.print(rs.getString(i)+"\t\t");
@@ -92,10 +90,10 @@ public class Question8 {
 		    	}else if(num==4){
 		    		
 		    		Statement st=dbConn.createStatement();
-					ResultSet rs=st.executeQuery("select * from room r, hotel h, hotelchain hc where r.hotel_id=h.hotel_id and h.chain_id=hc.chain_id and hc.office_location='Ottawa' order by h.star_category, r.price");
-					System.out.println("success");
+					ResultSet rs=st.executeQuery("select r.*, r.price, h.star_category from room r, hotel h, hotelchain hc where r.hotel_id=h.hotel_id and h.chain_id=hc.chain_id and hc.office_location='Ottawa' order by h.star_category, r.price");
+		
 					while (rs.next()) { 
-						for (int i=1; i<=12;++i) {
+						for (int i=1; i<=14;++i) {
 							System.out.print(rs.getString(i)+"\t\t");
 						}
 						 
@@ -108,7 +106,7 @@ public class Question8 {
 		    		
 		    		Statement st=dbConn.createStatement();
 					ResultSet rs=st.executeQuery("select * from (select * from room r inner join rental rl on r.room_id=rl.room_id) as rrl where extract(day from rrl.start_date)=10 and extract(month from rrl.start_date)=10");
-					System.out.println("success");
+					
 					while (rs.next()) { 
 						for (int i=1; i<=12;++i) {
 							System.out.print(rs.getString(i)+"\t\t");
@@ -122,9 +120,8 @@ public class Question8 {
 		    	}else if(num==6){
 		    		Statement st=dbConn.createStatement();
 					ResultSet rs=st.executeQuery("update customer set phone_number='6136136133' where full_name='John Doe'");
-					System.out.println("success");
 					while (rs.next()) { 
-						for (int i=1; i<=12;++i) {
+						for (int i=1; i<=5;++i) {
 							System.out.print(rs.getString(i)+"\t\t");
 						}
 						 
@@ -135,8 +132,8 @@ public class Question8 {
 		    		
 		    	}else if(num==7){
 		    		Statement st=dbConn.createStatement();
-					ResultSet rs=st.executeQuery("select *, max(amount) from (select hrcrl.star_category, count(*) as amount from (select * from (select * from (select * from customer c join rental rl on c.c_sin_number=rl.c_sin_number) as crl join room r on crl.room_id=r.room_id) as rcrl join hotel h on h.hotel_id=rcrl.hotel_id) as hrcrl group by hrcrl.star_category) as t group by t.star_category, t.amount");
-					System.out.println("success");
+					ResultSet rs=st.executeQuery("select tt.star_category from (select h.star_category, count(*) from hotel h, rental rl, booking b, room r where(rl.room_id=r.room_id or b.room_id=r.room_id) and r.hotel_id=h.hotel_id group by star_category) as tt join (select max(count) as maxcount from (select h.star_category, count(*) from hotel h, rental rl, booking b, room r where(rl.room_id=r.room_id or b.room_id=r.room_id) and r.hotel_id=h.hotel_id group by star_category) as k) as t on tt.count=t.maxcount");
+		
 					while (rs.next()) { 
 						for (int i=1; i<=1;++i) {
 							System.out.print(rs.getString(i)+"\t\t");
@@ -150,7 +147,7 @@ public class Question8 {
 		    	}else if(num==8){
 		    		Statement st=dbConn.createStatement();
 					ResultSet rs=st.executeQuery("select max(salary) AS salary from employee where salary < (select max(salary) from employee)");
-					System.out.println("success");
+					
 					while (rs.next()) { 
 						for (int i=1; i<=1;++i) {
 							System.out.print(rs.getString(i)+"\t\t");
