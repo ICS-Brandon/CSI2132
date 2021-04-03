@@ -1,7 +1,7 @@
-package com.test;
+package lab5;
 
 import com.sun.jdi.IntegerType;
-import com.test.BookingHelper;
+import lab5.BookingHelper;
 
 import java.awt.print.Book;
 import java.io.BufferedReader;
@@ -31,14 +31,14 @@ public class Customer {
             " (?,?,?,?,?,?,?,?);";
 
     private static final String INSERT_PAY_SQL = "INSERT INTO public.paymentinformation"+
-            " (payment_id, payment_type, amount_paid, date_paid, booking_id) VALUES " +
-            "(?,?,?,?,?)";
+            " (payment_id, payment_type, amount_paid, date_paid) VALUES " +
+            "(?,?,?,?)";
 
     public Customer(){
 
         try{
 
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","bwils088","Wade150318!");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
 
         } catch (Exception e){
             System.out.println(e);
@@ -369,7 +369,7 @@ public class Customer {
             insertQuery.setString(2,payType);
             insertQuery.setInt(3,price);
             insertQuery.setDate(4,Date.valueOf(currentDate));
-            insertQuery.setInt(5,bookingId);
+            
         } catch(Exception e){
             System.out.println(e);
         }
