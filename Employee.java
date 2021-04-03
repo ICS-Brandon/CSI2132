@@ -29,7 +29,7 @@ public class Employee {
 
     public Employee(){
         try{
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","bwils088","Wade150318!");
             
      
         } catch (Exception e){
@@ -144,8 +144,8 @@ public class Employee {
                 if (rs.next()) {
                 	getUserPayment2(rs.getInt(1), bookingId, validBooking.getInt(6));
                 }
-               
-                createRental.execute();
+
+                createRental.executeUpdate();
                 changeRentalStatus(bookingId);
                 deleteBooking(bookingId,cSin);
                 
@@ -198,17 +198,14 @@ public class Employee {
 
         System.out.println("Input the roomId of the room that the user has selected");
         roomId = Integer.parseInt(reader.readLine().trim());
+        System.out.println(roomId);
 
         try{
             if(!checkBookingExists(roomId,getCurrentDate(),endDate) && !checkRentalExists(roomId,getCurrentDate(),endDate)){
                 PreparedStatement pst = dbConn.prepareStatement(INSERT_RENT_SQL);
                 int rentId = getMaxRentId();
-                if (rentId == 1) {
-                    rentId = 1;
-                } else {
-                    rentId++;
-                }
                 int price = getRoomPrice(roomId);
+                System.out.println(price);
                 int payId = getUserPayment(price,rentId);
                 pst.setInt(1,rentId);
                 pst.setInt(2,roomId);
@@ -217,7 +214,7 @@ public class Employee {
                 pst.setDate(5,Date.valueOf(endDate));
                 pst.setInt(6,payId);
                 pst.setBoolean(7,false);
-                pst.setInt(8,123456789);
+                pst.setInt(8,378392056);
                 pst.executeUpdate();
                 changeRentalStatus(rentId);
             }
@@ -339,11 +336,10 @@ public class Employee {
             insertQuery.setInt(3,price);
             insertQuery.setDate(4, Date.valueOf(currentDate));
             insertQuery.setInt(5,bookingId);
-            insertQuery.execute();
+            insertQuery.executeUpdate();
             return payId;
         } catch(Exception e){
-        	System.out.println("error from payment method");
-            System.out.println(e);
+            e.printStackTrace();
         }
 
         return 0;
@@ -395,7 +391,7 @@ public class Employee {
 
     public int getRoomPrice(int roomId){
 
-        String SQL = "SELECT price from public.room WHERE room_id = "+roomId;
+        String SQL = "SELECT price from public.room WHERE room_number = "+roomId;
 
         try{
             PreparedStatement pst = dbConn.prepareStatement(SQL);
@@ -431,13 +427,18 @@ public class Employee {
             PreparedStatement pst = dbConn.prepareStatement(SQL);
             ResultSet rs = pst.executeQuery();
             if(rs.next()){
-                return rs.getDate(1).toString();
+                String toRet = rs.getDate(1).toString();
+                if(toRet.equals("null")){
+                    return new String("N/A");
+                } else{
+                    return toRet;
+                }
             }
         } catch(Exception e){
             System.out.println(e);
         }
 
-        return null;
+        return new String("N/A");
     }
     
     //Validates that given booking id exists in booking table
