@@ -29,7 +29,7 @@ public class Employee {
 
     public Employee(){
         try{
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","user","password");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","bwils088","Wade150318!");
             
      
         } catch (Exception e){
@@ -212,6 +212,15 @@ public class Employee {
         roomId = Integer.parseInt(reader.readLine().trim());
         System.out.println(roomId);
 
+        System.out.println("Input the sin number of the customer");
+        int maxCapacity = getMaxOccupancy(roomId);
+        int cSin = Integer.parseInt(reader.readLine().trim());
+
+        System.out.println("Input the number of occupants, the max is: "+maxCapacity);
+        int occupancy = Integer.parseInt(reader.readLine().trim());
+
+        System.out.println("Input the number of occupants for the room.");
+
         try{
             if(!checkBookingExists(roomId,getCurrentDate(),endDate) && !checkRentalExists(roomId,getCurrentDate(),endDate)){
                 PreparedStatement pst = dbConn.prepareStatement(INSERT_RENT_SQL);
@@ -221,13 +230,13 @@ public class Employee {
                 int price = getRoomPrice(roomId);
                 int payId = getUserPayment(price,rentId);
                 pst.setInt(1,rentId);
-                pst.setInt(2,1112);
-                pst.setInt(3,4);
+                pst.setInt(2,roomId);
+                pst.setInt(3,occupancy);
                 pst.setDate(4, Date.valueOf(start));
                 pst.setDate(5,Date.valueOf(end));
                 pst.setInt(6,payId);
                 pst.setBoolean(7,false);
-                pst.setInt(8,378392056);
+                pst.setInt(8,cSin);
                 System.out.println(pst);
                 pst.executeUpdate();
                 changeRentalStatus(rentId);
@@ -616,6 +625,21 @@ public class Employee {
                 System.out.println(roomId + roomNumber + roomPrice + roomTv + roomAc + roomFridge + roomSnack + roomExtend + roomCap + roomView);
             }
         }
+    }
+
+    public int getMaxOccupancy(int roomId){
+        String SQL = "SELECT room_capacity FROM public.room WHERE room_id = "+roomId;
+        try{
+            PreparedStatement pst = dbConn.prepareStatement(SQL);
+            ResultSet rs = pst.executeQuery();
+            if(rs.next()){
+                return rs.getInt(1);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 
 }
