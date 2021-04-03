@@ -13,11 +13,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
-/*
-    TODO Add Logic Loops for input as well as checks to ensure valid input values
-    TODO Implement functionality for Rooms and Customers databases
- */
-
 
 public class DataAdmin {
 	private BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
