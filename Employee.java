@@ -1,4 +1,4 @@
-package com.test;
+package lab5;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,14 +22,14 @@ public class Employee {
             " (?,?,?,?,?,?,?,?);";
 
     private static final String INSERT_PAY_SQL = "INSERT INTO public.paymentinformation"+
-            " (payment_id, payment_type, amount_paid, date_paid, booking_id) VALUES " +
-            "(?,?,?,?,?)";
+            " (payment_id, payment_type, amount_paid, date_paid) VALUES " +
+            "(?,?,?,?)";
 
     private static final String DATETEMPLATE = "dd/MM/yyyy";
 
     public Employee(){
         try{
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","bwils088","Wade150318!");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
             
      
         } catch (Exception e){
@@ -358,7 +358,7 @@ public class Employee {
             insertQuery.setString(2,payType);
             insertQuery.setInt(3,price);
             insertQuery.setDate(4, Date.valueOf(currentDate));
-            insertQuery.setInt(5,bookingId);
+          
             insertQuery.executeUpdate();
             return payId;
         } catch(Exception e){
@@ -383,7 +383,7 @@ public class Employee {
             insertQuery.setString(2,payType);
             insertQuery.setInt(3,price);
             insertQuery.setDate(4, Date.valueOf(currentDate));
-            insertQuery.setInt(5,bookingId);
+            
             insertQuery.executeUpdate();
             return payId;
         } catch(Exception e){
