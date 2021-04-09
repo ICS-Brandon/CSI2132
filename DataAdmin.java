@@ -618,8 +618,17 @@ public class DataAdmin {
             	Statement st=dbConn.createStatement();
     			ResultSet rs=st.executeQuery(query);
     			System.out.println("Run another query?(Y/N)");
+    			while (rs.next()) { 
+	 				for (int i=1; i<=5;++i) {
+	 					System.out.print(rs.getString(i)+"\t\t");
+	 				}
+	 				 
+	 				System.out.println(); 
+	 			} 
+	 			rs.close();
     			String choice=reader.readLine().trim().toLowerCase();
     			if(choice.equals("y")) {
+    				
 
     			}else {
     				run=false;
