@@ -1,4 +1,4 @@
-package DBMS;
+package lab5;
 
 import com.sun.jdi.IntegerType;
 
@@ -37,7 +37,7 @@ public class Customer {
 
         try{
 
-            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","user","password");
+            dbConn = DriverManager.getConnection("jdbc:postgresql://web0.site.uottawa.ca:15432/group_a07_g25","","");
 
         } catch (Exception e){
             System.out.println(e);
